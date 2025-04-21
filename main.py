@@ -7,18 +7,17 @@ import os, json
 
 app = FastAPI()
 
-# ✅ Remove acentos e deixa tudo em minúsculas
+# Remove acentos e deixa tudo em minúsculas
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# ✅ Converte campo PRICE em float seguro
+# Converte campo PRICE para float com segurança
 def converter_preco(valor_str):
     try:
-        return float(valor_str.replace(",", "").strip())
+        return float(str(valor_str).replace(",", "").replace("R$", "").strip())
     except:
         return None
 
-# ✅ Endpoint principal com filtros e VALORMAXIMO
 @app.get("/api/data")
 def get_data(request: Request):
     if not os.path.exists("data.json"):
@@ -32,20 +31,18 @@ def get_data(request: Request):
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
-    filtros = dict(request.query_params)
+    query_params = dict(request.query_params)
+    valormax = query_params.pop("ValorMax", None)
 
-    # ✅ Aplica filtros padrão (ex: ?MAKE=chevrolet)
-    for chave, valor in filtros.items():
-        if chave.upper() == "VALORMAXIMO":
-            continue  # Deixamos esse para o bloco separado abaixo
+    # Filtros padrão (MAKE, MODEL, etc)
+    for chave, valor in query_params.items():
         valor_normalizado = normalizar(valor)
         vehicles = [
             v for v in vehicles
             if chave in v and valor_normalizado in normalizar(str(v[chave]))
         ]
 
-    # ✅ Aplica filtro VALORMAXIMO no campo PRICE
-    valormax = filtros.get("VALORMAXIMO")
+    # Filtro por ValorMax no campo PRICE
     if valormax:
         try:
             teto = float(valormax)
@@ -54,14 +51,14 @@ def get_data(request: Request):
                 if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= teto
             ]
         except ValueError:
-            return {"error": "Formato inválido para VALORMAXIMO"}
+            return {"error": "Formato inválido para ValorMax"}
 
     return JSONResponse(content=vehicles)
 
-# ✅ Agendamento automático de atualização
+# Agendamento de atualização do XML
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
 scheduler.start()
 
-# ✅ Executa ao iniciar
+# Atualiza ao iniciar
 fetch_and_convert_xml()
