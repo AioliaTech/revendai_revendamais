@@ -23,7 +23,7 @@ def get_data(request: Request):
         data = json.load(f)
 
     try:
-        vehicles = data["root"]["vehicle"]  # ajuste conforme estrutura real
+        vehicles = data["ADS"]["AD"]  # ajuste conforme estrutura real
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
