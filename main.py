@@ -13,6 +13,23 @@ def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
 
+# 🟡 Filtro por valor máximo
+    valor_max = request.query_params.get("VALORMAXIMO")
+    if valor_max:
+        try:
+            valor_max = float(valor_max)
+            vehicles = [
+                v for v in vehicles
+                if "PRICE" in v and float(v["PRICE"].replace(".", "").replace(",", ".")) <= valor_max
+            ]
+            # Ordena do mais caro para o mais barato
+            vehicles.sort(
+                key=lambda x: float(x["PRICE"].replace(".", "").replace(",", ".")),
+                reverse=True
+            )
+        except:
+            return {"error": "Formato inválido para VALORMAXIMO"}
+
 # ✅ Endpoint com filtros flexíveis por query string
 @app.get("/api/data")
 def get_data(request: Request):
