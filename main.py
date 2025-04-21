@@ -11,26 +11,14 @@ app = FastAPI()
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# ✅ Converte campo PRICE em float
+# ✅ Converte campo PRICE em float seguro
 def converter_preco(valor_str):
     try:
-        return float(valor_str)
+        return float(valor_str.replace(",", "").strip())
     except:
         return None
 
-# ✅ ValorMax
-    valor_max = request.query_params.get("ValorMax")
-    if valor_max:
-        try:
-            valor_max = float(valor_max)
-            vehicles = [
-                v for v in vehicles
-                if "PRICE" in v and float(v["PRICE"]) <= valor_max
-            ]
-        except:
-            return {"error": "Erro ao processar ValorMax"}
-
-# ✅ Endpoint com filtros flexíveis e VALORMAXIMO
+# ✅ Endpoint principal com filtros e VALORMAXIMO
 @app.get("/api/data")
 def get_data(request: Request):
     if not os.path.exists("data.json"):
@@ -44,26 +32,36 @@ def get_data(request: Request):
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
-    
-
-    # ✅ Filtros padrão (ex: ?MAKE=chevrolet)
     filtros = dict(request.query_params)
 
+    # ✅ Aplica filtros padrão (ex: ?MAKE=chevrolet)
     for chave, valor in filtros.items():
         if chave.upper() == "VALORMAXIMO":
-            continue
+            continue  # Deixamos esse para o bloco separado abaixo
         valor_normalizado = normalizar(valor)
         vehicles = [
             v for v in vehicles
-            if chave in v and valor_normalizado in normalizar(v[chave])
+            if chave in v and valor_normalizado in normalizar(str(v[chave]))
         ]
+
+    # ✅ Aplica filtro VALORMAXIMO no campo PRICE
+    valormax = filtros.get("VALORMAXIMO")
+    if valormax:
+        try:
+            teto = float(valormax)
+            vehicles = [
+                v for v in vehicles
+                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= teto
+            ]
+        except ValueError:
+            return {"error": "Formato inválido para VALORMAXIMO"}
 
     return JSONResponse(content=vehicles)
 
-# ✅ Agendamento automático da atualização
+# ✅ Agendamento automático de atualização
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
 scheduler.start()
 
-# ✅ Executa ao subir
+# ✅ Executa ao iniciar
 fetch_and_convert_xml()
