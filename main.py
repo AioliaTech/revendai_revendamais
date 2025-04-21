@@ -14,10 +14,6 @@ def normalizar(texto: str) -> str:
 # ✅ Converte campo PRICE em float
 def converter_preco(valor_str):
     try:
-        valor_str = valor_str.strip()
-        valor_str = valor_str.replace("R$", "")
-        valor_str = valor_str.replace(".", "")
-        valor_str = valor_str.replace(",", ".")
         return float(valor_str)
     except:
         return None
@@ -36,18 +32,30 @@ def get_data(request: Request):
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
-    # ✅ Filtro por valor máximo (ex: ?VALORMAXIMO=60000)
-    valor_max = request.query_params.get("VALORMAXIMO")
-    if valor_max:
-        try:
-            valor_max = float(valor_max)
-            vehicles = [
-                v for v in vehicles
-                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= valor_max
-            ]
-            vehicles.sort(key=lambda x: converter_preco(x["PRICE"]), reverse=True)
-        except:
-            return {"error": "Formato inválido para VALORMAXIMO"}
+    # ✅ Filtro por valor máximo (ex: ?VALORMAXIMO=240000)
+valor_max = request.query_params.get("VALORMAXIMO")
+if valor_max:
+    try:
+        valor_max = float(valor_max)
+
+        def converter_preco(valor_str):
+            try:
+                return float(valor_str)
+            except:
+                return None
+
+        vehicles = [
+            v for v in vehicles
+            if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= valor_max
+        ]
+
+        vehicles.sort(
+            key=lambda x: converter_preco(x["PRICE"]),
+            reverse=True
+        )
+
+    except:
+        return {"error": "Formato inválido para VALORMAXIMO"}
 
     # ✅ Filtros padrão (ex: ?MAKE=chevrolet)
     filtros = dict(request.query_params)
