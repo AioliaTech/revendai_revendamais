@@ -18,13 +18,23 @@ def normalizar(texto: str) -> str:
     if valor_max:
         try:
             valor_max = float(valor_max)
+
+            def converter_preco(valor_str):
+                try:
+                    valor_str = valor_str.strip()
+                    valor_str = valor_str.replace("R$", "")
+                    valor_str = valor_str.replace(".", "")
+                    valor_str = valor_str.replace(",", ".")
+                    return float(valor_str)
+                except:
+                    return None
+
             vehicles = [
                 v for v in vehicles
-                if "PRICE" in v and float(v["PRICE"].replace(".", "").replace(",", ".")) <= valor_max
+                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= valor_max
             ]
-            # Ordena do mais caro para o mais barato
             vehicles.sort(
-                key=lambda x: float(x["PRICE"].replace(".", "").replace(",", ".")),
+                key=lambda x: converter_preco(x["PRICE"]),
                 reverse=True
             )
         except:
