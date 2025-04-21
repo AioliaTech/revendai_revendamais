@@ -1,14 +1,19 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import json, os
+from apscheduler.schedulers.background import BackgroundScheduler
 from xml_fetcher import fetch_and_convert_xml
 from unidecode import unidecode
+import os, json
 
 app = FastAPI()
 
+
+# ✅ Remove acentos e deixa tudo em minúsculas
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
+
+# ✅ Endpoint com filtros flexíveis por query string
 @app.get("/api/data")
 def get_data(request: Request):
     if not os.path.exists("data.json"):
@@ -18,7 +23,7 @@ def get_data(request: Request):
         data = json.load(f)
 
     try:
-        vehicles = data["root"]["vehicle"]
+        vehicles = data["root"]["vehicle"]  # ajuste conforme estrutura real
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
@@ -32,3 +37,12 @@ def get_data(request: Request):
         ]
 
     return JSONResponse(content=vehicles)
+
+
+# ✅ Agenda atualização 2x ao dia (00h e 12h)
+scheduler = BackgroundScheduler()
+scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
+scheduler.start()
+
+# ✅ Atualiza uma vez ao subir o servidor
+fetch_and_convert_xml()
