@@ -30,8 +30,6 @@ def converter_preco(valor_str):
         except:
             return {"error": "Erro ao processar ValorMax"}
 
-
-
 # ✅ Endpoint com filtros flexíveis e VALORMAXIMO
 @app.get("/api/data")
 def get_data(request: Request):
