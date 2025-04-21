@@ -18,6 +18,20 @@ def converter_preco(valor_str):
     except:
         return None
 
+# ✅ ValorMax
+    valor_max = request.query_params.get("ValorMax")
+    if valor_max:
+        try:
+            valor_max = float(valor_max)
+            vehicles = [
+                v for v in vehicles
+                if "PRICE" in v and float(v["PRICE"]) <= valor_max
+            ]
+        except:
+            return {"error": "Erro ao processar ValorMax"}
+
+
+
 # ✅ Endpoint com filtros flexíveis e VALORMAXIMO
 @app.get("/api/data")
 def get_data(request: Request):
