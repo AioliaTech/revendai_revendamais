@@ -32,10 +32,11 @@ def get_data(request: Request):
     except KeyError:
         return {"error": "Formato de dados inválido"}
 
-    # ✅ Filtro por valor máximo (ex: ?VALORMAXIMO=240000)
+    # ✅ Filtro por valor máximo (ex: ?VALORMAXIMO=150000 ou 150.000)
 valor_max = request.query_params.get("VALORMAXIMO")
 if valor_max:
     try:
+        valor_max = valor_max.strip().replace(".", "").replace(",", ".")
         valor_max = float(valor_max)
 
         def converter_preco(valor_str):
