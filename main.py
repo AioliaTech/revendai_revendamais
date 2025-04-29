@@ -16,8 +16,7 @@ def encurtar_url(url_original):
             timeout=3
         )
         if response.status_code == 200:
-            result = response.json()
-            return result.get("result_url", url_original)
+            return response.json().get("result_url", url_original)
     except:
         pass
     return url_original
@@ -68,10 +67,16 @@ def get_data(request: Request):
         except ValueError:
             return {"error": "Formato inválido para ValorMax"}
 
- # ✅ Encurtar URLs (campo "URL") usando CleanURI
-    for v in vehicles:
-        if "URL" in v and v["URL"].startswith("http"):
-            v["URL"] = encurtar_url(v["URL"])
+ # ✅ Encurtar todas as imagens em IMAGE_URL
+for v in vehicles:
+    if "IMAGES" in v and "IMAGE_URL" in v["IMAGES"]:
+        novas_urls = []
+        for img_url in v["IMAGES"]["IMAGE_URL"]:
+            if isinstance(img_url, str) and img_url.startswith("http"):
+                novas_urls.append(encurtar_url(img_url))
+            else:
+                novas_urls.append(img_url)
+        v["IMAGES"]["IMAGE_URL"] = novas_urls
 
     return JSONResponse(content=vehicles)
 
