@@ -4,9 +4,24 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from xml_fetcher import fetch_and_convert_xml
 from unidecode import unidecode
 import os, json
+import requests
 
 app = FastAPI()
 
+def encurtar_url(url_original):
+    try:
+        response = requests.post(
+            "https://cleanuri.com/api/v1/shorten",
+            data={"url": url_original},
+            timeout=3
+        )
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("result_url", url_original)
+    except:
+        pass
+    return url_original
+    
 # Remove acentos e deixa tudo em minúsculas
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
@@ -52,6 +67,11 @@ def get_data(request: Request):
             ]
         except ValueError:
             return {"error": "Formato inválido para ValorMax"}
+
+ # ✅ Encurtar URLs (campo "URL") usando CleanURI
+    for v in vehicles:
+        if "URL" in v and v["URL"].startswith("http"):
+            v["URL"] = encurtar_url(v["URL"])
 
     return JSONResponse(content=vehicles)
 
