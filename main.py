@@ -8,25 +8,25 @@ import requests
 
 app = FastAPI()
 
-# ✅ Encurta uma URL usando CleanURI
+# ✅ Encurtador usando is.gd
 def encurtar_url(url_original):
     try:
-        response = requests.post(
-            "https://cleanuri.com/api/v1/shorten",
-            data={"url": url_original},
-            timeout=3
+        response = requests.get(
+            "https://is.gd/create.php",
+            params={"format": "simple", "url": url_original},
+            timeout=2
         )
         if response.status_code == 200:
-            return response.json().get("result_url", url_original)
+            return response.text.strip()
     except:
         pass
     return url_original
 
-# ✅ Remove acentos e minúsculas
+# ✅ Remove acentos e deixa tudo minúsculo
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# ✅ Converte campo PRICE para float com segurança
+# ✅ Converte campo PRICE para float
 def converter_preco(valor_str):
     try:
         return float(str(valor_str).replace(",", "").replace("R$", "").strip())
@@ -50,7 +50,7 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
 
-    # Filtros padrão (MAKE, MODEL, etc.)
+    # Filtros padrão
     for chave, valor in query_params.items():
         valor_normalizado = normalizar(valor)
         vehicles = [
@@ -58,7 +58,7 @@ def get_data(request: Request):
             if chave in v and valor_normalizado in normalizar(str(v[chave]))
         ]
 
-    # Filtro por ValorMax no campo PRICE
+    # Filtro por preço máximo
     if valormax:
         try:
             teto = float(valormax)
@@ -69,21 +69,16 @@ def get_data(request: Request):
         except ValueError:
             return {"error": "Formato inválido para ValorMax"}
 
-    # ✅ Encurtar todas as imagens em IMAGE_URL
+    # ✅ Encurta apenas a primeira imagem de cada veículo
     for v in vehicles:
         if "IMAGES" in v and "IMAGE_URL" in v["IMAGES"]:
-            novas_urls = []
-            for img_url in v["IMAGES"]["IMAGE_URL"]:
-                if isinstance(img_url, str) and img_url.startswith("http"):
-                    novas_urls.append(encurtar_url(img_url))
-                else:
-                    novas_urls.append(img_url)
-            v["IMAGES"]["IMAGE_URL"] = novas_urls
+            imagens = v["IMAGES"]["IMAGE_URL"]
+            if isinstance(imagens, list) and imagens and isinstance(imagens[0], str):
+                v["IMAGES"]["IMAGE_URL"][0] = encurtar_url(imagens[0])
 
-    # ⬅️ ESTE `return` ESTÁ FORA DO LOOP, CORRETAMENTE
     return JSONResponse(content=vehicles)
 
-# ⏰ Atualização automática 2x ao dia
+# 🔄 Atualização 2x por dia
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
 scheduler.start()
