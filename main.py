@@ -80,6 +80,7 @@ def get_data(request: Request):
                     novas_urls.append(img_url)
             v["IMAGES"]["IMAGE_URL"] = novas_urls
 
+    # ⬅️ ESTE `return` ESTÁ FORA DO LOOP, CORRETAMENTE
     return JSONResponse(content=vehicles)
 
 # ⏰ Atualização automática 2x ao dia
