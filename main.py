@@ -8,6 +8,7 @@ import requests
 
 app = FastAPI()
 
+# ✅ Encurta uma URL usando CleanURI
 def encurtar_url(url_original):
     try:
         response = requests.post(
@@ -20,18 +21,19 @@ def encurtar_url(url_original):
     except:
         pass
     return url_original
-    
-# Remove acentos e deixa tudo em minúsculas
+
+# ✅ Remove acentos e minúsculas
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# Converte campo PRICE para float com segurança
+# ✅ Converte campo PRICE para float com segurança
 def converter_preco(valor_str):
     try:
         return float(str(valor_str).replace(",", "").replace("R$", "").strip())
     except:
         return None
 
+# ✅ Endpoint principal
 @app.get("/api/data")
 def get_data(request: Request):
     if not os.path.exists("data.json"):
@@ -48,7 +50,7 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
 
-    # Filtros padrão (MAKE, MODEL, etc)
+    # Filtros padrão (MAKE, MODEL, etc.)
     for chave, valor in query_params.items():
         valor_normalizado = normalizar(valor)
         vehicles = [
@@ -67,20 +69,20 @@ def get_data(request: Request):
         except ValueError:
             return {"error": "Formato inválido para ValorMax"}
 
- # ✅ Encurtar todas as imagens em IMAGE_URL
-for v in vehicles:
-    if "IMAGES" in v and "IMAGE_URL" in v["IMAGES"]:
-        novas_urls = []
-        for img_url in v["IMAGES"]["IMAGE_URL"]:
-            if isinstance(img_url, str) and img_url.startswith("http"):
-                novas_urls.append(encurtar_url(img_url))
-            else:
-                novas_urls.append(img_url)
-        v["IMAGES"]["IMAGE_URL"] = novas_urls
+    # ✅ Encurtar todas as imagens em IMAGE_URL
+    for v in vehicles:
+        if "IMAGES" in v and "IMAGE_URL" in v["IMAGES"]:
+            novas_urls = []
+            for img_url in v["IMAGES"]["IMAGE_URL"]:
+                if isinstance(img_url, str) and img_url.startswith("http"):
+                    novas_urls.append(encurtar_url(img_url))
+                else:
+                    novas_urls.append(img_url)
+            v["IMAGES"]["IMAGE_URL"] = novas_urls
 
     return JSONResponse(content=vehicles)
 
-# Agendamento de atualização do XML
+# ⏰ Atualização automática 2x ao dia
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
 scheduler.start()
