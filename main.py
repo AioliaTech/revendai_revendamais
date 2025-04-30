@@ -7,18 +7,17 @@ import os, json
 
 app = FastAPI()
 
-# ✅ Remove acentos e deixa tudo minúsculo
+# Remove acentos e deixa tudo em minúsculo
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# ✅ Converte campo PRICE para float com segurança
+# Converte campo PRICE para float com segurança
 def converter_preco(valor_str):
     try:
         return float(str(valor_str).replace(",", "").replace("R$", "").strip())
     except:
         return None
 
-# ✅ Endpoint principal
 @app.get("/api/data")
 def get_data(request: Request):
     if not os.path.exists("data.json"):
@@ -35,7 +34,7 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
 
-    # Filtros padrão (ex: MAKE, MODEL)
+    # Filtros padrão (MAKE, MODEL, etc.)
     for chave, valor in query_params.items():
         valor_normalizado = normalizar(valor)
         vehicles = [
@@ -56,7 +55,7 @@ def get_data(request: Request):
 
     return JSONResponse(content=vehicles)
 
-# ⏰ Atualização 2x ao dia
+# Atualização 2x ao dia
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
 scheduler.start()
