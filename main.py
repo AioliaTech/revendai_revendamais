@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import json, os
 from unidecode import unidecode
@@ -24,7 +24,7 @@ def agendar_tarefas():
     fetch_and_convert_xml()
 
 @app.get("/api/data")
-def get_data():
+def get_data(request: Request):
     if not os.path.exists("data.json"):
         return {"error": "Nenhum dado disponível"}
 
@@ -32,6 +32,90 @@ def get_data():
         data = json.load(f)
 
     try:
-        return JSONResponse(content=data["ADS"]["AD"])
+        vehicles = data["ADS"]["AD"]
     except:
         return {"error": "Formato de dados inválido"}
+
+    query_params = dict(request.query_params)
+    valormax = query_params.pop("ValorMax", None)
+
+    # Filtros dinâmicos
+    for chave, valor in query_params.items():
+        valor_normalizado = normalizar(valor)
+        vehicles = [
+            v for v in vehicles
+            if chave in v and valor_normalizado in normalizar(str(v[chave]))
+        ]
+
+    # Filtro por valor máximo
+    if valormax:
+        try:
+            teto = float(valormax)
+            vehicles = [
+                v for v in vehicles
+                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= teto
+            ]
+        except:
+            return {"error": "Formato inválido para ValorMax"}
+
+    # Ordena por preço (maior para menor)
+    vehicles.sort(
+        key=lambda v: converter_preco(v["PRICE"]) if "PRICE" in v else 0,
+        reverse=True
+    )
+
+    return JSONResponse(content=vehicles)
+
+@app.get("/api/status")
+def get_status():
+    if not os.path.exists("data.json"):
+        return {"status": "Nenhum dado ainda foi gerado."}
+
+    with open("data.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    timestamp = data.get("_updated_at", "Desconhecido")
+    return {"ultima_atualizacao": timestamp}
+
+@app.get("/api/info")
+def get_info():
+    if not os.path.exists("data.json"):
+        return {"status": "Nenhum dado disponível"}
+
+    with open("data.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    try:
+        vehicles = data["ADS"]["AD"]
+    except:
+        return {"error": "Formato de dados inválido"}
+
+    total = len(vehicles)
+    marcas = set()
+    anos = []
+    precos = []
+
+    for v in vehicles:
+        if "MAKE" in v:
+            marcas.add(v["MAKE"])
+        if "YEAR" in v:
+            try:
+                anos.append(int(v["YEAR"]))
+            except:
+                pass
+        if "PRICE" in v:
+            try:
+                preco = converter_preco(v["PRICE"])
+                if preco is not None:
+                    precos.append(preco)
+            except:
+                pass
+
+    return {
+        "total_veiculos": total,
+        "marcas_diferentes": len(marcas),
+        "ano_mais_antigo": min(anos) if anos else None,
+        "ano_mais_novo": max(anos) if anos else None,
+        "preco_minimo": min(precos) if precos else None,
+        "preco_maximo": max(precos) if precos else None
+    }
