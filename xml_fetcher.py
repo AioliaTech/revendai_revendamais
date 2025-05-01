@@ -11,8 +11,36 @@ def fetch_and_convert_xml():
         response = requests.get(XML_URL)
         data_dict = xmltodict.parse(response.content)
 
-        # Adiciona data de atualização
-        data_dict["_updated_at"] = datetime.now().isoformat()
+        parsed_vehicles = []
+
+        for v in data_dict["ADS"]["AD"]:
+            try:
+                parsed = {
+                    "id": v.get("ID"),
+                    "titulo": v.get("TITLE"),
+                    "marca": v.get("MAKE"),
+                    "modelo": v.get("MODEL"),
+                    "ano": v.get("YEAR"),
+                    "ano_fabricacao": v.get("FABRIC_YEAR"),
+                    "km": v.get("MILEAGE"),
+                    "cor": v.get("COLOR"),
+                    "combustivel": v.get("FUEL"),
+                    "cambio": v.get("GEAR"),
+                    "motor": v.get("MOTOR"),
+                    "portas": v.get("DOORS"),
+                    "categoria": v.get("CATEGORY"),
+                    "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
+                    "opcionais": v.get("ACCESSORIES"),
+                    "imagens": v.get("IMAGES", {}).get("IMAGE_URL", [])
+                }
+                parsed_vehicles.append(parsed)
+            except Exception as e:
+                print(f"[ERRO ao converter veículo ID {v.get('ID')}] {e}")
+
+        data_dict = {
+            "veiculos": parsed_vehicles,
+            "_updated_at": datetime.now().isoformat()
+        }
 
         with open(JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(data_dict, f, ensure_ascii=False, indent=2)
