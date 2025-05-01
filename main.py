@@ -32,7 +32,7 @@ def get_data(request: Request):
         data = json.load(f)
 
     try:
-        vehicles = data["ADS"]["AD"]
+        vehicles = data["veiculos"]
     except:
         return {"error": "Formato de dados inválido"}
 
@@ -53,14 +53,14 @@ def get_data(request: Request):
             teto = float(valormax)
             vehicles = [
                 v for v in vehicles
-                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= teto
+                if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= teto
             ]
         except:
             return {"error": "Formato inválido para ValorMax"}
 
     # Ordena por preço (maior para menor)
     vehicles.sort(
-        key=lambda v: converter_preco(v["PRICE"]) if "PRICE" in v else 0,
+        key=lambda v: converter_preco(v["preco"]) if "preco" in v else 0,
         reverse=True
     )
 
@@ -86,7 +86,7 @@ def get_info():
         data = json.load(f)
 
     try:
-        vehicles = data["ADS"]["AD"]
+        vehicles = data["veiculos"]
     except:
         return {"error": "Formato de dados inválido"}
 
@@ -96,16 +96,16 @@ def get_info():
     precos = []
 
     for v in vehicles:
-        if "MAKE" in v:
-            marcas.add(v["MAKE"])
-        if "YEAR" in v:
+        if "marca" in v:
+            marcas.add(v["marca"])
+        if "ano" in v:
             try:
-                anos.append(int(v["YEAR"]))
+                anos.append(int(v["ano"]))
             except:
                 pass
-        if "PRICE" in v:
+        if "preco" in v:
             try:
-                preco = converter_preco(v["PRICE"])
+                preco = converter_preco(v["preco"])
                 if preco is not None:
                     precos.append(preco)
             except:
