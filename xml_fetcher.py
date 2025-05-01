@@ -28,7 +28,7 @@ def fetch_and_convert_xml():
                     "cambio": v.get("GEAR"),
                     "motor": v.get("MOTOR"),
                     "portas": v.get("DOORS"),
-                    "categoria": v.get("CATEGORY"),
+                    "categoria": v.get("BODY_TYPE"),
                     "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
                     "opcionais": v.get("ACCESSORIES"),
                     "imagens": v.get("IMAGES", {}).get("IMAGE_URL", [])
