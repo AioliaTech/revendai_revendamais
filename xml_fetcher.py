@@ -1,4 +1,5 @@
 import requests, xmltodict, json, os
+from datetime import datetime
 
 XML_URL = os.getenv("XML_URL")
 JSON_FILE = "data.json"
@@ -9,6 +10,9 @@ def fetch_and_convert_xml():
             raise ValueError("Variável XML_URL não definida")
         response = requests.get(XML_URL)
         data_dict = xmltodict.parse(response.content)
+
+        # Adiciona data de atualização
+        data_dict["_updated_at"] = datetime.now().isoformat()
 
         with open(JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(data_dict, f, ensure_ascii=False, indent=2)
