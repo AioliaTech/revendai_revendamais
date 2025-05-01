@@ -4,3 +4,4 @@ xmltodict
 requests
 apscheduler
 unidecode
+rapidfuzz
