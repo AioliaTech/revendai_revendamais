@@ -1,25 +1,30 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+import json, os
+from unidecode import unidecode
 from apscheduler.schedulers.background import BackgroundScheduler
 from xml_fetcher import fetch_and_convert_xml
-from unidecode import unidecode
-import os, json
 
 app = FastAPI()
 
-# Remove acentos e deixa tudo em minúsculo
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower()
 
-# Converte campo PRICE para float com segurança
 def converter_preco(valor_str):
     try:
         return float(str(valor_str).replace(",", "").replace("R$", "").strip())
     except:
         return None
 
+@app.on_event("startup")
+def agendar_tarefas():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
+    scheduler.start()
+    fetch_and_convert_xml()
+
 @app.get("/api/data")
-def get_data(request: Request):
+def get_data():
     if not os.path.exists("data.json"):
         return {"error": "Nenhum dado disponível"}
 
@@ -27,38 +32,31 @@ def get_data(request: Request):
         data = json.load(f)
 
     try:
-        vehicles = data["ADS"]["AD"]
-    except KeyError:
+        return JSONResponse(content=data["ADS"]["AD"])
+    except:
         return {"error": "Formato de dados inválido"}
+📄 xml_fetcher.py
+python
+Copiar
+Editar
+import requests, xmltodict, json, os
 
-    query_params = dict(request.query_params)
-    valormax = query_params.pop("ValorMax", None)
+XML_URL = os.getenv("XML_URL")
+JSON_FILE = "data.json"
 
-    # Filtros padrão (MAKE, MODEL, etc.)
-    for chave, valor in query_params.items():
-        valor_normalizado = normalizar(valor)
-        vehicles = [
-            v for v in vehicles
-            if chave in v and valor_normalizado in normalizar(str(v[chave]))
-        ]
+def fetch_and_convert_xml():
+    try:
+        if not XML_URL:
+            raise ValueError("Variável XML_URL não definida")
+        response = requests.get(XML_URL)
+        data_dict = xmltodict.parse(response.content)
 
-    # Filtro por ValorMax (PRICE)
-    if valormax:
-        try:
-            teto = float(valormax)
-            vehicles = [
-                v for v in vehicles
-                if "PRICE" in v and converter_preco(v["PRICE"]) is not None and converter_preco(v["PRICE"]) <= teto
-            ]
-        except ValueError:
-            return {"error": "Formato inválido para ValorMax"}
+        with open(JSON_FILE, "w", encoding="utf-8") as f:
+            json.dump(data_dict, f, ensure_ascii=False, indent=2)
 
-    return JSONResponse(content=vehicles)
+        print("[OK] Dados atualizados com sucesso.")
+        return data_dict
 
-# Atualização 2x ao dia
-scheduler = BackgroundScheduler()
-scheduler.add_job(fetch_and_convert_xml, "cron", hour="0,12")
-scheduler.start()
-
-# Atualiza ao iniciar
-fetch_and_convert_xml()
+    except Exception as e:
+        print(f"[ERRO] Falha ao converter XML: {e}")
+        return {}
