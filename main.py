@@ -40,8 +40,11 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
 
-    # 🔍 Busca com similaridade
+    # 🔍 Busca com similaridade (ignora campos vazios)
     for chave, valor in query_params.items():
+        if not valor.strip():
+            continue  # Ignora campos em branco
+
         valor_normalizado = normalizar(valor)
         resultado_aproximado = []
 
