@@ -31,7 +31,7 @@ def fetch_and_convert_xml():
                     "categoria": v.get("BODY_TYPE"),
                     "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
                     "opcionais": v.get("ACCESSORIES"),
-                    "imagens": v.get("IMAGES", {}).get("IMAGE_URL", [])
+                    "fotos": v.get("IMAGES", {}).get("IMAGE_URL", [])
                 }
                 parsed_vehicles.append(parsed)
             except Exception as e:
