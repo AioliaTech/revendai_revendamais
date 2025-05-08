@@ -16,23 +16,25 @@ def fetch_and_convert_xml():
         for v in data_dict["ADS"]["AD"]:
             try:
                 parsed = {
-                    "id": v.get("ID"),
-                    "titulo": v.get("TITLE"),
-                    "marca": v.get("MAKE"),
-                    "modelo": v.get("MODEL"),
-                    "ano": v.get("YEAR"),
-                    "ano_fabricacao": v.get("FABRIC_YEAR"),
-                    "km": v.get("MILEAGE"),
-                    "cor": v.get("COLOR"),
-                    "combustivel": v.get("FUEL"),
-                    "cambio": v.get("GEAR"),
-                    "motor": v.get("MOTOR"),
-                    "portas": v.get("DOORS"),
-                    "categoria": v.get("BODY_TYPE"),
-                    "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
-                    "opcionais": v.get("ACCESSORIES"),
-                    "fotos": v.get("IMAGES", {}).get("IMAGE_URL", [])
-                }
+    "id": v.get("ID"),
+    "titulo": v.get("TITLE"),
+    "marca": v.get("MAKE"),
+    "modelo": v.get("MODEL"),
+    "ano": v.get("YEAR"),
+    "ano_fabricacao": v.get("FABRIC_YEAR"),
+    "km": v.get("MILEAGE"),
+    "cor": v.get("COLOR"),
+    "combustivel": v.get("FUEL"),
+    "cambio": v.get("GEAR"),
+    "motor": v.get("MOTOR"),
+    "portas": v.get("DOORS"),
+    "categoria": v.get("BODY_TYPE"),
+    "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
+    "opcionais": v.get("ACCESSORIES"),
+    "fotos": {
+        "url_fotos": v.get("IMAGES", {}).get("IMAGE_URL", [])
+    }
+}
                 parsed_vehicles.append(parsed)
             except Exception as e:
                 print(f"[ERRO ao converter veículo ID {v.get('ID')}] {e}")
