@@ -39,11 +39,12 @@ def get_data(request: Request):
 
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
+    order = query_params.pop("order", "desc").lower()  # ✅ novo parâmetro para ordenação
 
     # 🔍 Busca com similaridade (ignora campos vazios)
     for chave, valor in query_params.items():
         if not valor.strip():
-            continue  # Ignora campos em branco
+            continue
 
         valor_normalizado = normalizar(valor)
         resultado_aproximado = []
@@ -68,10 +69,11 @@ def get_data(request: Request):
         except:
             return {"error": "Formato inválido para ValorMax"}
 
-    # 🔽 Ordena por preço (maior para menor)
+    # 🔽 Ordenação por preço crescente ou decrescente
+    reverse = order != "asc"
     vehicles.sort(
         key=lambda v: converter_preco(v["preco"]) if "preco" in v else 0,
-        reverse=True
+        reverse=reverse
     )
 
     return JSONResponse(content=vehicles)
