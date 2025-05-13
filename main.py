@@ -42,18 +42,18 @@ def get_data(request: Request):
     order = query_params.pop("order", "desc").lower()
     modelo = query_params.pop("modelo", None)
 
-    # 🔍 Filtro por modelo com fuzzy matching
+    # 🔍 Filtro por modelo com fuzzy matching (token_set_ratio)
     if modelo:
         modelo_normalizado = normalizar(modelo)
         veiculos_fuzzy = []
 
         for v in vehicles:
-            campo = v.get("modelo", "")
+            campo = v.get("modelo") or v.get("titulo") or ""
             if not campo:
                 continue
 
             texto = normalizar(str(campo))
-            score = fuzz.partial_ratio(texto, modelo_normalizado)
+            score = fuzz.token_set_ratio(texto, modelo_normalizado)
 
             if score >= 80:
                 veiculos_fuzzy.append(v)
