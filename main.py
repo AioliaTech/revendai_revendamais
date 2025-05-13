@@ -41,10 +41,10 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
 
-    # Lista de campos para aplicar fuzzy
+    # 🧠 Campos onde vamos aplicar fuzzy
     campos_textuais = ["modelo", "titulo", "marca", "cor", "categoria", "cambio", "combustivel"]
 
-    # 🔍 Fuzzy por palavra-chave em todos os campos relevantes
+    # 🔍 Filtro fuzzy global por palavra-chave
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
@@ -61,7 +61,7 @@ def get_data(request: Request):
                 score = fuzz.partial_ratio(texto, valor_normalizado)
                 if score >= 60:
                     resultados.append(v)
-                    break  # já bateu em um campo, não precisa continuar
+                    break  # já bateu em um campo
 
         vehicles = resultados
 
@@ -116,3 +116,25 @@ def get_info():
 
     for v in vehicles:
         if "marca" in v:
+            marcas.add(v["marca"])
+        if "ano" in v:
+            try:
+                anos.append(int(v["ano"]))
+            except:
+                pass
+        if "preco" in v:
+            try:
+                preco = converter_preco(v["preco"])
+                if preco is not None:
+                    precos.append(preco)
+            except:
+                pass
+
+    return {
+        "total_veiculos": total,
+        "marcas_diferentes": len(marcas),
+        "ano_mais_antigo": min(anos) if anos else None,
+        "ano_mais_novo": max(anos) if anos else None,
+        "preco_minimo": min(precos) if precos else None,
+        "preco_maximo": max(precos) if precos else None
+    }
