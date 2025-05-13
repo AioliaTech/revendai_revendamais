@@ -41,23 +41,29 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
 
-    # 🔍 Busca com similaridade (mais permissiva)
+    # 🔍 Busca com similaridade + fallback exato e encadeado
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
 
         valor_normalizado = normalizar(valor)
-        resultado_aproximado = []
+        filtrados = []
 
         for v in vehicles:
             if chave in v and v[chave]:
                 texto_alvo = normalizar(str(v[chave]))
                 score = fuzz.partial_ratio(valor_normalizado, texto_alvo)
                 if score >= 80:
-                    resultado_aproximado.append(v)
+                    filtrados.append(v)
 
-        if resultado_aproximado:
-            vehicles = resultado_aproximado
+        if filtrados:
+            vehicles = filtrados
+        else:
+            # Filtro exato (mais restrito)
+            vehicles = [
+                v for v in vehicles
+                if chave in v and valor_normalizado in normalizar(str(v[chave]))
+            ]
 
     # 💰 Filtro por preço máximo
     if valormax:
@@ -78,7 +84,6 @@ def get_data(request: Request):
     )
 
     return JSONResponse(content=vehicles)
-
 @app.get("/api/status")
 def get_status():
     if not os.path.exists("data.json"):
