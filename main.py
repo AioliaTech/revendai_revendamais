@@ -42,7 +42,7 @@ def get_data(request: Request):
     order = query_params.pop("order", "desc").lower()
     modelo = query_params.pop("modelo", None)
 
-    # 🔍 Filtro por modelo com fuzzy híbrido
+    # 🔍 Filtro por modelo com fuzzy amplo (token_set_ratio ≥ 60)
     if modelo:
         modelo_normalizado = normalizar(modelo)
         veiculos_fuzzy = []
@@ -53,14 +53,9 @@ def get_data(request: Request):
                 continue
 
             texto = normalizar(str(campo))
+            score = fuzz.token_set_ratio(texto, modelo_normalizado)
 
-            # híbrido: partial_ratio para palavras únicas, token_set_ratio para compostas
-            if len(modelo_normalizado.split()) == 1:
-                score = fuzz.partial_ratio(texto, modelo_normalizado)
-            else:
-                score = fuzz.token_set_ratio(texto, modelo_normalizado)
-
-            if score >= 80:
+            if score >= 60:  # permissivo: encontra o que interessa e mais
                 veiculos_fuzzy.append(v)
 
         vehicles = veiculos_fuzzy
