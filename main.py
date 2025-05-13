@@ -39,9 +39,9 @@ def get_data(request: Request):
 
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
-    order = query_params.pop("order", "desc").lower()  # ✅ novo parâmetro para ordenação
+    order = query_params.pop("order", "desc").lower()
 
-    # 🔍 Busca com similaridade (ignora campos vazios)
+    # 🔍 Busca com similaridade (mais permissiva)
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
@@ -56,7 +56,8 @@ def get_data(request: Request):
                 if score >= 80:
                     resultado_aproximado.append(v)
 
-        vehicles = resultado_aproximado
+        if resultado_aproximado:
+            vehicles = resultado_aproximado
 
     # 💰 Filtro por preço máximo
     if valormax:
