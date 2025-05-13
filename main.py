@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from unidecode import unidecode
-from rapidfuzz import fuzz
 from apscheduler.schedulers.background import BackgroundScheduler
 from xml_fetcher import fetch_and_convert_xml
 import json, os
@@ -40,27 +39,8 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
-    modelo = query_params.pop("modelo", None)
 
-    # 🔍 Filtro por modelo com fuzzy amplo (token_set_ratio ≥ 60)
-    if modelo:
-        modelo_normalizado = normalizar(modelo)
-        veiculos_fuzzy = []
-
-        for v in vehicles:
-            campo = v.get("modelo") or v.get("titulo") or ""
-            if not campo:
-                continue
-
-            texto = normalizar(str(campo))
-            score = fuzz.token_set_ratio(texto, modelo_normalizado)
-
-            if score >= 60:  # permissivo: encontra o que interessa e mais
-                veiculos_fuzzy.append(v)
-
-        vehicles = veiculos_fuzzy
-
-    # 🔍 Filtros exatos restantes
+    # 🔍 Filtros exatos
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
