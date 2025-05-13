@@ -38,50 +38,55 @@ def get_data(request: Request):
         return {"error": "Formato de dados inválido"}
 
     query_params = dict(request.query_params)
-    valormax = query_params.pop("ValorMax", None)
-    order = query_params.pop("order", "desc").lower()
-    modelo = query_params.pop("modelo", None)
+valormax = query_params.pop("ValorMax", None)
+order = query_params.pop("order", "desc").lower()
+modelo = query_params.pop("modelo", None)
 
-    # 🔍 Filtro de modelo com similaridade
-    if modelo:
-        modelo_normalizado = normalizar(modelo)
-        modelo_filtrado = []
-        for v in vehicles:
-            if "modelo" in v and v["modelo"]:
-                texto_alvo = normalizar(str(v["modelo"]))
-                score = fuzz.partial_ratio(texto_alvo, modelo_normalizado)  # ← invertido aqui
+# 🔍 Filtragem por modelo com fuzzy matching
+if modelo:
+    modelo_normalizado = normalizar(modelo)
+    veiculos_fuzzy = []
 
-                if score >= 80:
-                    modelo_filtrado.append(v)
-        vehicles = modelo_filtrado
-
-    # 🔍 Demais filtros exatos
-    for chave, valor in query_params.items():
-        if not valor.strip():
+    for v in vehicles:
+        campo = v.get("modelo", "")
+        if not campo:
             continue
-        valor_normalizado = normalizar(valor)
+
+        texto = normalizar(str(campo))
+        score = fuzz.partial_ratio(texto, modelo_normalizado)
+
+        if score >= 80:
+            veiculos_fuzzy.append(v)
+
+    vehicles = veiculos_fuzzy
+
+# 🔍 Filtros exatos aplicados após o modelo (marca, cambio, etc.)
+for chave, valor in query_params.items():
+    if not valor.strip():
+        continue
+    valor_normalizado = normalizar(valor)
+    vehicles = [
+        v for v in vehicles
+        if chave in v and valor_normalizado in normalizar(str(v[chave]))
+    ]
+
+# 💰 Filtro por preço máximo
+if valormax:
+    try:
+        teto = float(valormax)
         vehicles = [
             v for v in vehicles
-            if chave in v and valor_normalizado in normalizar(str(v[chave]))
+            if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= teto
         ]
+    except:
+        return {"error": "Formato inválido para ValorMax"}
 
-    # 💰 Filtro por preço máximo
-    if valormax:
-        try:
-            teto = float(valormax)
-            vehicles = [
-                v for v in vehicles
-                if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= teto
-            ]
-        except:
-            return {"error": "Formato inválido para ValorMax"}
-
-    # 🔽 Ordenação por preço
-    reverse = order != "asc"
-    vehicles.sort(
-        key=lambda v: converter_preco(v["preco"]) if "preco" in v else 0,
-        reverse=reverse
-    )
+# 🔽 Ordenação
+reverse = order != "asc"
+vehicles.sort(
+    key=lambda v: converter_preco(v["preco"]) if "preco" in v else 0,
+    reverse=reverse
+)
 
     return JSONResponse(content=vehicles)
 
