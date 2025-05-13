@@ -58,8 +58,8 @@ def get_data(request: Request):
                 if not conteudo:
                     continue
                 texto = normalizar(str(conteudo))
-                score = fuzz.partial_ratio(texto, valor_normalizado)
-                if score >= 60:
+                score = fuzz.token_set_ratio(texto, valor_normalizado)
+                if score >= 70:
                     resultados.append(v)
                     break  # já bateu em um campo
 
