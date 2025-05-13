@@ -49,12 +49,13 @@ def get_data(request: Request):
         for v in vehicles:
             if "modelo" in v and v["modelo"]:
                 texto_alvo = normalizar(str(v["modelo"]))
-                score = fuzz.partial_ratio(modelo_normalizado, texto_alvo)
+                score = fuzz.partial_ratio(texto_alvo, modelo_normalizado)  # ← invertido aqui
+
                 if score >= 80:
                     modelo_filtrado.append(v)
         vehicles = modelo_filtrado
 
-    # 🔍 Demais filtros exatos (aplicados após o filtro de modelo)
+    # 🔍 Demais filtros exatos
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
