@@ -40,44 +40,30 @@ def get_data(request: Request):
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
-    modelo = query_params.pop("modelo", None)
 
-    # 🔍 Filtro fuzzy por modelo ou titulo
-    if modelo:
-        modelo_normalizado = normalizar(modelo)
-        veiculos_fuzzy = []
+    # Lista de campos para aplicar fuzzy
+    campos_textuais = ["modelo", "titulo", "marca", "cor", "categoria", "cambio", "combustivel"]
 
-        for v in vehicles:
-            campos = [
-                v.get("modelo", ""),
-                v.get("titulo", "")
-            ]
-
-            match_encontrado = False
-
-            for campo in campos:
-                if not campo:
-                    continue
-                texto = normalizar(str(campo))
-                score = fuzz.token_set_ratio(texto, modelo_normalizado)
-                if score >= 70:
-                    match_encontrado = True
-                    break
-
-            if match_encontrado:
-                veiculos_fuzzy.append(v)
-
-        vehicles = veiculos_fuzzy
-
-    # 🔍 Filtros exatos restantes
+    # 🔍 Fuzzy por palavra-chave em todos os campos relevantes
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
+
         valor_normalizado = normalizar(valor)
-        vehicles = [
-            v for v in vehicles
-            if chave in v and valor_normalizado in normalizar(str(v[chave]))
-        ]
+        resultados = []
+
+        for v in vehicles:
+            for campo in campos_textuais:
+                conteudo = v.get(campo, "")
+                if not conteudo:
+                    continue
+                texto = normalizar(str(conteudo))
+                score = fuzz.partial_ratio(texto, valor_normalizado)
+                if score >= 60:
+                    resultados.append(v)
+                    break  # já bateu em um campo, não precisa continuar
+
+        vehicles = resultados
 
     # 💰 Filtro por preço máximo
     if valormax:
@@ -130,26 +116,3 @@ def get_info():
 
     for v in vehicles:
         if "marca" in v:
-            marcas.add(v["marca"])
-        if "ano" in v:
-            try:
-                anos.append(int(v["ano"]))
-            except:
-                pass
-        if "preco" in v:
-            try:
-                preco = converter_preco(v["preco"])
-                if preco is not None:
-                    precos.append(preco)
-            except:
-                pass
-
-    return {
-        "total_veiculos": total,
-        "marcas_diferentes": len(marcas),
-        "ano_mais_antigo": min(anos) if anos else None,
-        "ano_mais_novo": max(anos) if anos else None,
-        "preco_minimo": min(precos) if precos else None,
-        "preco_maximo": max(precos) if precos else None
-    }
-    
