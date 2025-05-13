@@ -152,3 +152,4 @@ def get_info():
         "preco_minimo": min(precos) if precos else None,
         "preco_maximo": max(precos) if precos else None
     }
+    
