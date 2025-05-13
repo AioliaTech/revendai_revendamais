@@ -59,7 +59,7 @@ def get_data(request: Request):
                     continue
                 texto = normalizar(str(conteudo))
                 score = fuzz.partial_ratio(texto, valor_normalizado)
-                if score >= 70:
+                if score >= 75:
                     resultados.append(v)
                     break  # já bateu em um campo
 
