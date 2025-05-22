@@ -65,7 +65,7 @@ def get_data(request: Request):
 
                 for palavra in palavras:
                     score = fuzz.token_set_ratio(texto, palavra)
-                    if score >= 55:
+                    if score >= 43:
                         match = True
                         break  # já encontrou, segue pro próximo carro
 
