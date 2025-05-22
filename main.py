@@ -9,7 +9,8 @@ import json, os
 app = FastAPI()
 
 def normalizar(texto: str) -> str:
-    return unidecode(texto).lower().replace("-", "").replace(" ", "")
+    return unidecode(texto).lower().replace("-", "")
+    # Mantemos os espaços para token_set_ratio funcionar melhor
 
 def converter_preco(valor_str):
     try:
@@ -62,12 +63,12 @@ def get_data(request: Request):
 
                 for palavra in palavras:
                     score = fuzz.token_set_ratio(texto, palavra)
-                    if score >= 80:
+                    if score >= 70:  # ou ajuste para 75~80 conforme sua preferência
                         match = True
-                        break  # achou uma palavra, já basta
+                        break
 
                 if match:
-                    break  # não precisa testar os outros campos
+                    break
 
             if match:
                 resultados.append(v)
