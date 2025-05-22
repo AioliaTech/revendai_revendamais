@@ -41,6 +41,8 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
 
+    campos_textuais = ["modelo", "titulo", "marca", "cor", "categoria", "cambio", "combustivel"]
+
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
@@ -49,28 +51,23 @@ def get_data(request: Request):
         resultados = []
 
         for v in vehicles:
-            # Se for modelo, busca em modelo e titulo
-            if chave == "modelo":
-                campos = [v.get("modelo", ""), v.get("titulo", "")]
-            else:
-                campos = [v.get(chave, "")]
-
             match = False
 
-            for campo in campos:
-                if not campo:
+            for campo in campos_textuais:
+                conteudo = v.get(campo, "")
+                if not conteudo:
                     continue
 
-                texto = normalizar(str(campo))
+                texto = normalizar(str(conteudo))
 
                 for palavra in palavras:
                     score = fuzz.token_set_ratio(texto, palavra)
                     if score >= 43:
                         match = True
-                        break  # já encontrou, segue pro próximo carro
+                        break  # achou uma palavra, já basta
 
                 if match:
-                    break  # já encontrou nesse campo
+                    break  # não precisa testar os outros campos
 
             if match:
                 resultados.append(v)
