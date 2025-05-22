@@ -41,27 +41,39 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
     order = query_params.pop("order", "desc").lower()
 
-    # 🧠 Campos onde vamos aplicar fuzzy
-    campos_textuais = ["modelo", "titulo", "marca", "cor", "categoria", "cambio", "combustivel"]
-
-    # 🔍 Filtro fuzzy global por palavra-chave
     for chave, valor in query_params.items():
         if not valor.strip():
             continue
 
-        valor_normalizado = normalizar(valor)
+        palavras = normalizar(valor).split()
         resultados = []
 
         for v in vehicles:
-            for campo in campos_textuais:
-                conteudo = v.get(campo, "")
-                if not conteudo:
+            # Se for modelo, busca em modelo e titulo
+            if chave == "modelo":
+                campos = [v.get("modelo", ""), v.get("titulo", "")]
+            else:
+                campos = [v.get(chave, "")]
+
+            match = False
+
+            for campo in campos:
+                if not campo:
                     continue
-                texto = normalizar(str(conteudo))
-                score = fuzz.partial_ratio(texto, valor_normalizado)
-                if score >= 81:
-                    resultados.append(v)
-                    break  # já bateu em um campo
+
+                texto = normalizar(str(campo))
+
+                for palavra in palavras:
+                    score = fuzz.token_set_ratio(texto, palavra)
+                    if score >= 65:
+                        match = True
+                        break  # já encontrou, segue pro próximo carro
+
+                if match:
+                    break  # já encontrou nesse campo
+
+            if match:
+                resultados.append(v)
 
         vehicles = resultados
 
