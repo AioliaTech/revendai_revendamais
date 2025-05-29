@@ -17,24 +17,9 @@ def converter_preco(valor_str):
     except:
         return None
 
-def fuzzy_termo_bate(texto, termos):
-    texto = normalizar(texto)
-    for termo in termos:
-        if termo in texto or texto in termo:
-            return True
-        for palavra in texto.split():
-            score = max(
-                fuzz.ratio(palavra, termo),
-                fuzz.partial_ratio(palavra, termo),
-                fuzz.token_set_ratio(palavra, termo)
-            )
-            if score >= 70:
-                return True
-    return False
-
 def filtrar_veiculos(vehicles, filtros, valormax=None):
     vehicles_filtrados = vehicles.copy()
-    campos_textuais = ["modelo", "titulo"]
+    campos_textuais = ["modelo", "titulo"]  # fuzzy só nesses campos
 
     for chave, valor in filtros.items():
         if not valor:
@@ -47,12 +32,28 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         for v in vehicles_filtrados:
             match = False
 
-            if chave == "modelo":
+            # Fuzzy apenas em modelo e titulo
+            if chave in campos_textuais:
                 for campo in campos_textuais:
-                    if fuzzy_termo_bate(v.get(campo, ""), termos):
-                        match = True
+                    texto = normalizar(v.get(campo, ""))
+                    palavras_texto = texto.split()
+
+                    for termo in termos:
+                        for palavra in palavras_texto:
+                            score = max(
+                                fuzz.ratio(palavra, termo),
+                                fuzz.token_set_ratio(palavra, termo),
+                                fuzz.partial_ratio(palavra, termo)
+                            )
+                            if score >= 70:
+                                match = True
+                                break
+                        if match:
+                            break
+                    if match:
                         break
             else:
+                # Busca exata em outros campos
                 campo_valor = normalizar(v.get(chave, ""))
                 if termo_busca in campo_valor or campo_valor in termo_busca:
                     match = True
@@ -116,8 +117,33 @@ def get_data(request: Request):
             "total_encontrado": len(resultado)
         })
 
+    alternativas = []
+    alternativa1 = filtrar_veiculos(vehicles, filtros)
+    if alternativa1:
+        alternativas = alternativa1
+    else:
+        filtros_sem_marca = {"modelo": filtros.get("modelo")}
+        alternativa2 = filtrar_veiculos(vehicles, filtros_sem_marca, valormax)
+        if alternativa2:
+            alternativas = alternativa2
+
+    if alternativas:
+        alternativa = [
+            {"titulo": v.get("titulo", ""), "preco": v.get("preco", "")}
+            for v in alternativas
+        ]
+        return JSONResponse(content={
+            "resultados": [],
+            "total_encontrado": 0,
+            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor desejado. Seguem as opções mais próximas.",
+            "alternativa": {
+                "resultados": alternativa,
+                "total_encontrado": len(alternativa)
+            }
+        })
+
     return JSONResponse(content={
         "resultados": [],
         "total_encontrado": 0,
-        "instrucao_ia": "Não encontramos veículos com os parâmetros informados."
+        "instrucao_ia": "Não encontramos veículos com os parâmetros informados e também não encontramos opções próximas."
     })
