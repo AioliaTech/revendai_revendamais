@@ -97,13 +97,15 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
                     continue
                 texto = normalizar(str(conteudo))
 
+                # 🧠 Novo match: basta UMA palavra relevante bater
                 for termo in termos:
                     if termo in texto or texto in termo:
                         match = True
                         break
                     score_ratio = fuzz.ratio(texto, termo)
                     score_token = fuzz.token_set_ratio(texto, termo)
-                    if score_ratio >= 65 or score_token >= 65:
+                    score_partial = fuzz.partial_ratio(texto, termo)
+                    if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
                         match = True
                         break
                 if match:
@@ -112,6 +114,24 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
             if match:
                 resultados.append(v)
         vehicles_filtrados = resultados
+
+    if valormax:
+        try:
+            teto = float(valormax)
+            maximo = teto * 1.3
+            vehicles_filtrados = [
+                v for v in vehicles_filtrados
+                if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= maximo
+            ]
+        except:
+            return []
+
+    vehicles_filtrados.sort(
+        key=lambda v: converter_preco(v["preco"]) if "preco" in v else float('inf'),
+        reverse=True
+    )
+    return vehicles_filtrados
+
 
     if valormax:
         try:
