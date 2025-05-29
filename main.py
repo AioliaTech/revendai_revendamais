@@ -79,7 +79,7 @@ def converter_preco(valor_str):
         return None
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
-    campos_textuais = ["modelo","titulo"]
+    campos_fuzzy = ["modelo", "titulo"]
     vehicles_filtrados = vehicles.copy()
 
     for chave, valor in filtros.items():
@@ -91,47 +91,34 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
 
         for v in vehicles_filtrados:
             match = False
-            for campo in campos_textuais:
-                conteudo = v.get(campo, "")
-                if not conteudo:
-                    continue
-                texto = normalizar(str(conteudo))
 
-                # 🧠 Novo match: basta UMA palavra relevante bater
-                for termo in termos:
-                    if termo in texto or texto in termo:
-                        match = True
+            if chave in campos_fuzzy:
+                for campo in campos_fuzzy:
+                    conteudo = v.get(campo, "")
+                    if not conteudo:
+                        continue
+                    texto = normalizar(str(conteudo))
+
+                    for termo in termos:
+                        if termo in texto or texto in termo:
+                            match = True
+                            break
+                        score_ratio = fuzz.ratio(texto, termo)
+                        score_token = fuzz.token_set_ratio(texto, termo)
+                        score_partial = fuzz.partial_ratio(texto, termo)
+                        if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
+                            match = True
+                            break
+                    if match:
                         break
-                    score_ratio = fuzz.ratio(texto, termo)
-                    score_token = fuzz.token_set_ratio(texto, termo)
-                    score_partial = fuzz.partial_ratio(texto, termo)
-                    if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
-                        match = True
-                        break
-                if match:
-                    break
+            else:
+                if normalizar(str(v.get(chave, ""))) == termo_busca:
+                    match = True
 
             if match:
                 resultados.append(v)
+
         vehicles_filtrados = resultados
-
-    if valormax:
-        try:
-            teto = float(valormax)
-            maximo = teto * 1.3
-            vehicles_filtrados = [
-                v for v in vehicles_filtrados
-                if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= maximo
-            ]
-        except:
-            return []
-
-    vehicles_filtrados.sort(
-        key=lambda v: converter_preco(v["preco"]) if "preco" in v else float('inf'),
-        reverse=True
-    )
-    return vehicles_filtrados
-
 
     if valormax:
         try:
@@ -175,7 +162,8 @@ def get_data(request: Request):
 
     filtros = {
         "modelo": query_params.get("modelo"),
-        "marca": query_params.get("marca")
+        "marca": query_params.get("marca"),
+        "categoria": query_params.get("categoria")
     }
 
     resultado = filtrar_veiculos(vehicles, filtros, valormax)
