@@ -98,9 +98,12 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
                 texto = normalizar(str(conteudo))
 
                 for termo in termos:
+                    if termo in texto or texto in termo:
+                        match = True
+                        break
                     score_ratio = fuzz.ratio(texto, termo)
                     score_token = fuzz.token_set_ratio(texto, termo)
-                    if termo in texto or texto in termo or score_ratio >= 70 or score_token >= 70:
+                    if score_ratio >= 65 or score_token >= 65:
                         match = True
                         break
                 if match:
