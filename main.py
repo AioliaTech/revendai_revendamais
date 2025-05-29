@@ -38,35 +38,36 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         resultados = []
 
         for v in vehicles_filtrados:
-            match = False
-            for campo in campos_com_fuzzy + campos_exatos:
-                conteudo = v.get(campo, "")
-                if not conteudo:
-                    continue
-                texto = normalizar(str(conteudo))
+    match = False
+    for campo in campos_com_fuzzy + campos_exatos:
+        conteudo = v.get(campo, "")
+        if not conteudo:
+            continue
+        texto = normalizar(str(conteudo))
+        palavras_texto = texto.split()
 
-                if campo in campos_exatos:
-                    if termo_busca in texto or texto in termo_busca:
+        if campo in campos_exatos:
+            if termo_busca in texto or texto in termo_busca:
+                match = True
+                break
+
+        elif campo in campos_com_fuzzy:
+            for termo in termos:
+                for palavra in palavras_texto:
+                    score_ratio = fuzz.ratio(termo, palavra)
+                    score_token = fuzz.token_set_ratio(termo, palavra)
+                    score_partial = fuzz.partial_ratio(termo, palavra)
+                    if termo in palavra or palavra in termo or score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
                         match = True
                         break
+                if match:
+                    break
 
-                elif campo in campos_com_fuzzy:
-                    # Cada termo da busca precisa bater com algo no texto
-                    for termo in termos:
-                        if termo in texto or texto in termo:
-                            match = True
-                            break
-                        score_ratio = fuzz.ratio(termo, texto)
-                        score_token = fuzz.token_set_ratio(termo, texto)
-                        score_partial = fuzz.partial_ratio(termo, texto)
-                        if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
-                            match = True
-                            break
-                    if match:
-                        break
+        if match:
+            break
 
-            if match:
-                resultados.append(v)
+    if match:
+        resultados.append(v)
         vehicles_filtrados = resultados
 
     if valormax:
