@@ -17,41 +17,53 @@ def converter_preco(valor_str):
     except:
         return None
 
+def fuzzy_match(conteudo, termos):
+    texto = normalizar(conteudo)
+    palavras = texto.split()
+
+    for termo in termos:
+        termo = normalizar(termo)
+        if termo in texto or texto in termo:
+            return True
+
+        score_total = max(
+            fuzz.partial_ratio(texto, termo),
+            fuzz.token_sort_ratio(texto, termo)
+        )
+        if score_total >= 70:
+            return True
+
+        for palavra in palavras:
+            score = max(
+                fuzz.partial_ratio(palavra, termo),
+                fuzz.token_sort_ratio(palavra, termo)
+            )
+            if score >= 70:
+                return True
+    return False
+
 def filtrar_veiculos(vehicles, filtros, valormax=None):
     vehicles_filtrados = vehicles.copy()
-    campos_textuais = ["modelo", "titulo"]  # fuzzy só nesses
+    campos_textuais = ["modelo", "titulo"]  # fuzzy nestes campos
 
     for chave, valor in filtros.items():
         if not valor:
             continue
 
-        termo_busca = normalizar(valor)
-        termos = termo_busca.split()
+        termos = normalizar(valor).split()
         resultados = []
 
         for v in vehicles_filtrados:
             match = False
 
             if chave in campos_textuais:
-                texto = normalizar(v.get(chave, ""))
-                palavras = texto.split()
-
-                for termo in termos:
-                    if termo in texto:
+                for campo in campos_textuais:
+                    if campo in v and fuzzy_match(v.get(campo, ""), termos):
                         match = True
-                        break
-                    for palavra in palavras:
-                        score = max(
-                            fuzz.partial_ratio(palavra, termo),
-                            fuzz.token_sort_ratio(texto, termo)
-                        )
-                        if score >= 70:
-                            match = True
-                            break
-                    if match:
                         break
             else:
                 campo_valor = normalizar(v.get(chave, ""))
+                termo_busca = normalizar(valor)
                 if termo_busca in campo_valor or campo_valor in termo_busca:
                     match = True
 
@@ -114,34 +126,8 @@ def get_data(request: Request):
             "total_encontrado": len(resultado)
         })
 
-    alternativas = []
-
-    alternativa1 = filtrar_veiculos(vehicles, filtros)
-    if alternativa1:
-        alternativas = alternativa1
-    else:
-        filtros_sem_marca = {"modelo": filtros.get("modelo")}
-        alternativa2 = filtrar_veiculos(vehicles, filtros_sem_marca, valormax)
-        if alternativa2:
-            alternativas = alternativa2
-
-    if alternativas:
-        alternativa = [
-            {"titulo": v.get("titulo", ""), "preco": v.get("preco", "")}
-            for v in alternativas
-        ]
-        return JSONResponse(content={
-            "resultados": [],
-            "total_encontrado": 0,
-            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor desejado. Seguem as opções mais próximas.",
-            "alternativa": {
-                "resultados": alternativa,
-                "total_encontrado": len(alternativa)
-            }
-        })
-
     return JSONResponse(content={
         "resultados": [],
         "total_encontrado": 0,
-        "instrucao_ia": "Não encontramos veículos com os parâmetros informados e também não encontramos opções próximas."
+        "instrucao_ia": "Não encontramos veículos com os parâmetros informados."
     })
