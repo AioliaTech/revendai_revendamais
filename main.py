@@ -8,6 +8,67 @@ import json, os
 
 app = FastAPI()
 
+MAPEAMENTO_CATEGORIAS = {
+    # Hatch
+    "gol": "Hatch", "uno": "Hatch", "palio": "Hatch", "celta": "Hatch", "ka": "Hatch",
+    "fiesta": "Hatch", "march": "Hatch", "sandero": "Hatch", "onix": "Hatch",
+    "hb20": "Hatch", "i30": "Hatch", "golf": "Hatch", "polo": "Hatch", "fox": "Hatch",
+    "up": "Hatch", "fit": "Hatch", "city": "Hatch", "yaris": "Hatch", "etios": "Hatch",
+    "clio": "Hatch", "corsa": "Hatch", "bravo": "Hatch", "punto": "Hatch", "208": "Hatch",
+    "argo": "Hatch", "mobi": "Hatch", "c3": "Hatch", "picanto": "Hatch",
+
+    # Sedan
+    "civic": "Sedan", "corolla": "Sedan", "sentra": "Sedan", "versa": "Sedan", "jetta": "Sedan",
+    "fusca": "Sedan", "prisma": "Sedan", "voyage": "Sedan", "siena": "Sedan", "grand siena": "Sedan",
+    "cruze": "Sedan", "cobalt": "Sedan", "logan": "Sedan", "fluence": "Sedan", "cerato": "Sedan",
+    "elantra": "Sedan", "virtus": "Sedan", "accord": "Sedan", "altima": "Sedan", "fusion": "Sedan",
+    "mazda3": "Sedan", "mazda6": "Sedan", "passat": "Sedan",
+
+    # SUV
+    "duster": "SUV", "ecosport": "SUV", "hrv": "SUV", "compass": "SUV", "renegade": "SUV",
+    "tracker": "SUV", "kicks": "SUV", "captur": "SUV", "creta": "SUV", "tucson": "SUV",
+    "santa fe": "SUV", "sorento": "SUV", "sportage": "SUV", "outlander": "SUV",
+    "asx": "SUV", "pajero": "SUV", "tr4": "SUV", "aircross": "SUV", "tiguan": "SUV",
+    "t-cross": "SUV", "rav4": "SUV", "cx5": "SUV", "forester": "SUV", "wrx": "SUV",
+    "land cruiser": "SUV", "cherokee": "SUV", "grand cherokee": "SUV", "xtrail": "SUV",
+    "murano": "SUV", "cx9": "SUV", "edge": "SUV",
+
+    # Caminhonete
+    "hilux": "Caminhonete", "ranger": "Caminhonete", "s10": "Caminhonete", "l200": "Caminhonete",
+    "triton": "Caminhonete", "saveiro": "Utilitário", "strada": "Utilitário", "montana": "Utilitário",
+    "oroch": "Utilitário", "toro": "Caminhonete", "frontier": "Caminhonete", "amarok": "Caminhonete",
+    "gladiator": "Caminhonete", "maverick": "Caminhonete", "colorado": "Caminhonete", "dakota": "Caminhonete",
+
+    # Utilitário
+    "kangoo": "Utilitário", "partner": "Utilitário", "doblo": "Utilitário", "fiorino": "Utilitário",
+    "berlingo": "Utilitário", "express": "Utilitário", "combo": "Utilitário",
+
+    # Furgão
+    "master": "Furgão", "sprinter": "Furgão", "ducato": "Furgão", "daily": "Furgão",
+    "jumper": "Furgão", "boxer": "Furgão", "trafic": "Furgão", "transit": "Furgão",
+
+    # Coupe
+    "camaro": "Coupe", "mustang": "Coupe", "tt": "Coupe", "supra": "Coupe",
+    "370z": "Coupe", "rx8": "Coupe", "challenger": "Coupe", "corvette": "Coupe",
+
+    # Conversível
+    "z4": "Conversível", "boxster": "Conversível", "miata": "Conversível",
+    "beetle cabriolet": "Conversível", "slk": "Conversível", "911 cabrio": "Conversível",
+
+    # Minivan / Station Wagon
+    "spin": "Minivan", "livina": "Minivan", "caravan": "Minivan", "touran": "Minivan",
+    "parati": "Station Wagon", "quantum": "Station Wagon", "sharan": "Minivan",
+    "zafira": "Minivan", "picasso": "Minivan", "grand c4": "Minivan",
+
+    # Off-road
+    "wrangler": "Off-road", "troller": "Off-road", "defender": "Off-road", "bronco": "Off-road",
+    "samurai": "Off-road", "jimny": "Off-road", "land cruiser": "Off-road"
+}
+
+def inferir_categoria_por_modelo(modelo_buscado):
+    modelo_norm = normalizar(modelo_buscado)
+    return MAPEAMENTO_CATEGORIAS.get(modelo_norm)
+
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower().replace("-", "").replace(" ", "").strip()
 
