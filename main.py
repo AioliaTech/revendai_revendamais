@@ -8,67 +8,6 @@ import json, os
 
 app = FastAPI()
 
-MAPEAMENTO_CATEGORIAS = {
-    # Hatch
-    "gol": "Hatch", "uno": "Hatch", "palio": "Hatch", "celta": "Hatch", "ka": "Hatch",
-    "fiesta": "Hatch", "march": "Hatch", "sandero": "Hatch", "onix": "Hatch",
-    "hb20": "Hatch", "i30": "Hatch", "golf": "Hatch", "polo": "Hatch", "fox": "Hatch",
-    "up": "Hatch", "fit": "Hatch", "city": "Hatch", "yaris": "Hatch", "etios": "Hatch",
-    "clio": "Hatch", "corsa": "Hatch", "bravo": "Hatch", "punto": "Hatch", "208": "Hatch",
-    "argo": "Hatch", "mobi": "Hatch", "c3": "Hatch", "picanto": "Hatch",
-
-    # Sedan
-    "civic": "Sedan", "corolla": "Sedan", "sentra": "Sedan", "versa": "Sedan", "jetta": "Sedan",
-    "fusca": "Sedan", "prisma": "Sedan", "voyage": "Sedan", "siena": "Sedan", "grand siena": "Sedan",
-    "cruze": "Sedan", "cobalt": "Sedan", "logan": "Sedan", "fluence": "Sedan", "cerato": "Sedan",
-    "elantra": "Sedan", "virtus": "Sedan", "accord": "Sedan", "altima": "Sedan", "fusion": "Sedan",
-    "mazda3": "Sedan", "mazda6": "Sedan", "passat": "Sedan",
-
-    # SUV
-    "duster": "SUV", "ecosport": "SUV", "hrv": "SUV", "compass": "SUV", "renegade": "SUV",
-    "tracker": "SUV", "kicks": "SUV", "captur": "SUV", "creta": "SUV", "tucson": "SUV",
-    "santa fe": "SUV", "sorento": "SUV", "sportage": "SUV", "outlander": "SUV",
-    "asx": "SUV", "pajero": "SUV", "tr4": "SUV", "aircross": "SUV", "tiguan": "SUV",
-    "t-cross": "SUV", "rav4": "SUV", "cx5": "SUV", "forester": "SUV", "wrx": "SUV",
-    "land cruiser": "SUV", "cherokee": "SUV", "grand cherokee": "SUV", "xtrail": "SUV",
-    "murano": "SUV", "cx9": "SUV", "edge": "SUV",
-
-    # Caminhonete
-    "hilux": "Caminhonete", "ranger": "Caminhonete", "s10": "Caminhonete", "l200": "Caminhonete",
-    "triton": "Caminhonete", "saveiro": "Utilitário", "strada": "Utilitário", "montana": "Utilitário",
-    "oroch": "Utilitário", "toro": "Caminhonete", "frontier": "Caminhonete", "amarok": "Caminhonete",
-    "gladiator": "Caminhonete", "maverick": "Caminhonete", "colorado": "Caminhonete", "dakota": "Caminhonete",
-
-    # Utilitário
-    "kangoo": "Utilitário", "partner": "Utilitário", "doblo": "Utilitário", "fiorino": "Utilitário",
-    "berlingo": "Utilitário", "express": "Utilitário", "combo": "Utilitário",
-
-    # Furgão
-    "master": "Furgão", "sprinter": "Furgão", "ducato": "Furgão", "daily": "Furgão",
-    "jumper": "Furgão", "boxer": "Furgão", "trafic": "Furgão", "transit": "Furgão",
-
-    # Coupe
-    "camaro": "Coupe", "mustang": "Coupe", "tt": "Coupe", "supra": "Coupe",
-    "370z": "Coupe", "rx8": "Coupe", "challenger": "Coupe", "corvette": "Coupe",
-
-    # Conversível
-    "z4": "Conversível", "boxster": "Conversível", "miata": "Conversível",
-    "beetle cabriolet": "Conversível", "slk": "Conversível", "911 cabrio": "Conversível",
-
-    # Minivan / Station Wagon
-    "spin": "Minivan", "livina": "Minivan", "caravan": "Minivan", "touran": "Minivan",
-    "parati": "Station Wagon", "quantum": "Station Wagon", "sharan": "Minivan",
-    "zafira": "Minivan", "picasso": "Minivan", "grand c4": "Minivan",
-
-    # Off-road
-    "wrangler": "Off-road", "troller": "Off-road", "defender": "Off-road", "bronco": "Off-road",
-    "samurai": "Off-road", "jimny": "Off-road", "land cruiser": "Off-road"
-}
-
-def inferir_categoria_por_modelo(modelo_buscado):
-    modelo_norm = normalizar(modelo_buscado)
-    return MAPEAMENTO_CATEGORIAS.get(modelo_norm)
-
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower().replace("-", "").replace(" ", "").strip()
 
@@ -79,12 +18,13 @@ def converter_preco(valor_str):
         return None
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
-    campos_textuais = ["modelo", "titulo"]
     vehicles_filtrados = vehicles.copy()
+    campos_textuais = ["modelo"]  # fuzzy apenas em modelo
 
     for chave, valor in filtros.items():
         if not valor:
             continue
+
         termo_busca = normalizar(valor)
         termos = termo_busca.split()
         resultados = []
@@ -92,34 +32,32 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         for v in vehicles_filtrados:
             match = False
 
-            if chave == "categoria":
-                if normalizar(v.get("categoria", "")) == termo_busca:
-                    match = True
-            elif chave in campos_textuais:
-                for campo in campos_textuais:
-                    conteudo = v.get(campo, "")
-                    if not conteudo:
-                        continue
-                    texto = normalizar(str(conteudo))
+            # Só aplicar fuzzy em modelo
+            if chave == "modelo":
+                texto = normalizar(v.get("modelo", ""))
+                texto_termos = texto.split()
 
-                    for termo in termos:
-                        if termo in texto or texto in termo:
-                            match = True
-                            break
-                        score_ratio = fuzz.ratio(texto, termo)
-                        score_token = fuzz.token_set_ratio(texto, termo)
-                        score_partial = fuzz.partial_ratio(texto, termo)
-                        if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
+                for termo in termos:
+                    for palavra in texto_termos:
+                        score = max(
+                            fuzz.ratio(palavra, termo),
+                            fuzz.token_set_ratio(palavra, termo),
+                            fuzz.partial_ratio(palavra, termo)
+                        )
+                        if score >= 70:
                             match = True
                             break
                     if match:
                         break
             else:
-                if normalizar(str(v.get(chave, ""))) == termo_busca:
+                # Busca exata para outros filtros (ex: marca, categoria)
+                campo_valor = normalizar(v.get(chave, ""))
+                if termo_busca in campo_valor or campo_valor in termo_busca:
                     match = True
 
             if match:
                 resultados.append(v)
+
         vehicles_filtrados = resultados
 
     if valormax:
@@ -164,7 +102,8 @@ def get_data(request: Request):
 
     filtros = {
         "modelo": query_params.get("modelo"),
-        "marca": query_params.get("marca")
+        "marca": query_params.get("marca"),
+        "categoria": query_params.get("categoria")
     }
 
     resultado = filtrar_veiculos(vehicles, filtros, valormax)
@@ -185,18 +124,6 @@ def get_data(request: Request):
         alternativa2 = filtrar_veiculos(vehicles, filtros_sem_marca, valormax)
         if alternativa2:
             alternativas = alternativa2
-        else:
-            modelo = filtros.get("modelo")
-            categoria_inferida = inferir_categoria_por_modelo(modelo) if modelo else None
-            if categoria_inferida:
-                filtros_categoria = {"categoria": categoria_inferida}
-                alternativa3 = filtrar_veiculos(vehicles, filtros_categoria, valormax)
-                if alternativa3:
-                    alternativas = alternativa3
-                else:
-                    alternativa4 = filtrar_veiculos(vehicles, filtros_categoria)
-                    if alternativa4:
-                        alternativas = alternativa4
 
     if alternativas:
         alternativa = [
