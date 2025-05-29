@@ -30,7 +30,6 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
             if normalizar(v.get("categoria", "")) == categoria_filtrada
         ]
 
-    # Aplicar fuzzy/exato nos demais campos
     for chave, valor in filtros.items():
         if not valor or chave == "categoria":
             continue
@@ -46,23 +45,25 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
                     continue
                 texto = normalizar(str(conteudo))
 
-                for termo in termos:
-                    if campo in campos_exatos:
+                if campo in campos_exatos:
+                    if termo_busca in texto or texto in termo_busca:
+                        match = True
+                        break
+
+                elif campo in campos_com_fuzzy:
+                    # Cada termo da busca precisa bater com algo no texto
+                    for termo in termos:
                         if termo in texto or texto in termo:
                             match = True
                             break
-                    elif campo in campos_com_fuzzy:
-                        if termo in texto or texto in termo:
-                            match = True
-                            break
-                        score_ratio = fuzz.ratio(texto, termo)
-                        score_token = fuzz.token_set_ratio(texto, termo)
-                        score_partial = fuzz.partial_ratio(texto, termo)
+                        score_ratio = fuzz.ratio(termo, texto)
+                        score_token = fuzz.token_set_ratio(termo, texto)
+                        score_partial = fuzz.partial_ratio(termo, texto)
                         if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
                             match = True
                             break
-                if match:
-                    break
+                    if match:
+                        break
 
             if match:
                 resultados.append(v)
@@ -84,6 +85,7 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         reverse=True
     )
     return vehicles_filtrados
+
 
 @app.on_event("startup")
 def agendar_tarefas():
