@@ -18,56 +18,43 @@ def converter_preco(valor_str):
         return None
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
-    campos_com_fuzzy = ["modelo"]
-    campos_exatos = ["titulo"]
     vehicles_filtrados = vehicles.copy()
 
-    # Comparação exata para categoria
-    if filtros.get("categoria"):
-        categoria_filtrada = normalizar(filtros["categoria"])
-        vehicles_filtrados = [
-            v for v in vehicles_filtrados
-            if normalizar(v.get("categoria", "")) == categoria_filtrada
-        ]
-
     for chave, valor in filtros.items():
-        if not valor or chave == "categoria":
+        if not valor:
             continue
         termo_busca = normalizar(valor)
         termos = termo_busca.split()
         resultados = []
 
         for v in vehicles_filtrados:
-    match = False
-    for campo in campos_com_fuzzy + campos_exatos:
-        conteudo = v.get(campo, "")
-        if not conteudo:
-            continue
-        texto = normalizar(str(conteudo))
-        palavras_texto = texto.split()
+            match = False
+            if chave == "modelo":
+                campos_textuais = ["modelo", "titulo"]
+            else:
+                campos_textuais = [chave]
 
-        if campo in campos_exatos:
-            if termo_busca in texto or texto in termo_busca:
-                match = True
-                break
+            for campo in campos_textuais:
+                conteudo = v.get(campo, "")
+                if not conteudo:
+                    continue
+                texto = normalizar(str(conteudo))
 
-        elif campo in campos_com_fuzzy:
-            for termo in termos:
-                for palavra in palavras_texto:
-                    score_ratio = fuzz.ratio(termo, palavra)
-                    score_token = fuzz.token_set_ratio(termo, palavra)
-                    score_partial = fuzz.partial_ratio(termo, palavra)
-                    if termo in palavra or palavra in termo or score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
+                for termo in termos:
+                    if termo in texto or texto in termo:
+                        match = True
+                        break
+                    score_ratio = fuzz.ratio(texto, termo)
+                    score_token = fuzz.token_set_ratio(texto, termo)
+                    score_partial = fuzz.partial_ratio(texto, termo)
+                    if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
                         match = True
                         break
                 if match:
                     break
+            if match:
+                resultados.append(v)
 
-        if match:
-            break
-
-    if match:
-        resultados.append(v)
         vehicles_filtrados = resultados
 
     if valormax:
@@ -86,7 +73,6 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         reverse=True
     )
     return vehicles_filtrados
-
 
 @app.on_event("startup")
 def agendar_tarefas():
@@ -125,34 +111,8 @@ def get_data(request: Request):
             "total_encontrado": len(resultado)
         })
 
-    alternativas = []
-
-    alternativa1 = filtrar_veiculos(vehicles, filtros)
-    if alternativa1:
-        alternativas = alternativa1
-    else:
-        filtros_sem_marca = {"modelo": filtros.get("modelo")}
-        alternativa2 = filtrar_veiculos(vehicles, filtros_sem_marca, valormax)
-        if alternativa2:
-            alternativas = alternativa2
-
-    if alternativas:
-        alternativa = [
-            {"titulo": v.get("titulo", ""), "preco": v.get("preco", "")}
-            for v in alternativas
-        ]
-        return JSONResponse(content={
-            "resultados": [],
-            "total_encontrado": 0,
-            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor desejado. Seguem as opções mais próximas.",
-            "alternativa": {
-                "resultados": alternativa,
-                "total_encontrado": len(alternativa)
-            }
-        })
-
     return JSONResponse(content={
         "resultados": [],
         "total_encontrado": 0,
-        "instrucao_ia": "Não encontramos veículos com os parâmetros informados e também não encontramos opções próximas."
+        "instrucao_ia": "Não encontramos veículos com os parâmetros informados."
     })
