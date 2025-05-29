@@ -22,8 +22,17 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
     campos_exatos = ["titulo"]
     vehicles_filtrados = vehicles.copy()
 
+    # Comparação exata para categoria
+    if filtros.get("categoria"):
+        categoria_filtrada = normalizar(filtros["categoria"])
+        vehicles_filtrados = [
+            v for v in vehicles_filtrados
+            if normalizar(v.get("categoria", "")) == categoria_filtrada
+        ]
+
+    # Aplicar fuzzy/exato nos demais campos
     for chave, valor in filtros.items():
-        if not valor:
+        if not valor or chave == "categoria":
             continue
         termo_busca = normalizar(valor)
         termos = termo_busca.split()
@@ -101,7 +110,8 @@ def get_data(request: Request):
 
     filtros = {
         "modelo": query_params.get("modelo"),
-        "marca": query_params.get("marca")
+        "marca": query_params.get("marca"),
+        "categoria": query_params.get("categoria")
     }
 
     resultado = filtrar_veiculos(vehicles, filtros, valormax)
