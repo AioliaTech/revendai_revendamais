@@ -19,7 +19,7 @@ def converter_preco(valor_str):
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
     vehicles_filtrados = vehicles.copy()
-    campos_textuais = ["modelo", "titulo"]  # fuzzy apenas nesses
+    campos_textuais = ["modelo"]  # fuzzy apenas em modelo
 
     for chave, valor in filtros.items():
         if not valor:
@@ -32,21 +32,20 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
         for v in vehicles_filtrados:
             match = False
 
-            if chave in campos_textuais:
-                textos = [normalizar(v.get(campo, "")) for campo in campos_textuais]
-                for texto in textos:
-                    for termo in termos:
-                        score = max(
-                            fuzz.ratio(texto, termo),
-                            fuzz.token_set_ratio(texto, termo),
-                            fuzz.partial_ratio(texto, termo)
-                        )
-                        if score >= 70:
-                            match = True
-                            break
-                    if match:
+            if chave == "modelo":
+                texto = normalizar(v.get("modelo", ""))
+                # Mantém o veículo se pelo menos UM termo da busca bater com o modelo
+                for termo in termos:
+                    score = max(
+                        fuzz.ratio(texto, termo),
+                        fuzz.token_set_ratio(texto, termo),
+                        fuzz.partial_ratio(texto, termo)
+                    )
+                    if score >= 70 or termo in texto:
+                        match = True
                         break
             else:
+                # Busca exata para outros filtros
                 campo_valor = normalizar(v.get(chave, ""))
                 if termo_busca in campo_valor or campo_valor in termo_busca:
                     match = True
