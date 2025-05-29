@@ -79,7 +79,7 @@ def converter_preco(valor_str):
         return None
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
-    campos_textuais = ["modelo", "titulo", "marca", "cor", "categoria", "cambio", "combustivel"]
+    campos_textuais = ["modelo", "titulo"]
     vehicles_filtrados = vehicles.copy()
 
     for chave, valor in filtros.items():
