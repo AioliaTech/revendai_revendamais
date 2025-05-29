@@ -17,26 +17,16 @@ def converter_preco(valor_str):
     except:
         return None
 
-def fuzzy_match(conteudo, termos):
-    texto = normalizar(conteudo)
-    palavras = texto.split()
-
+def fuzzy_termo_bate(texto, termos):
+    texto = normalizar(texto)
     for termo in termos:
-        termo = normalizar(termo)
         if termo in texto or texto in termo:
             return True
-
-        score_total = max(
-            fuzz.partial_ratio(texto, termo),
-            fuzz.token_sort_ratio(texto, termo)
-        )
-        if score_total >= 70:
-            return True
-
-        for palavra in palavras:
+        for palavra in texto.split():
             score = max(
+                fuzz.ratio(palavra, termo),
                 fuzz.partial_ratio(palavra, termo),
-                fuzz.token_sort_ratio(palavra, termo)
+                fuzz.token_set_ratio(palavra, termo)
             )
             if score >= 70:
                 return True
@@ -44,26 +34,26 @@ def fuzzy_match(conteudo, termos):
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
     vehicles_filtrados = vehicles.copy()
-    campos_textuais = ["modelo", "titulo"]  # fuzzy nestes campos
+    campos_textuais = ["modelo", "titulo"]
 
     for chave, valor in filtros.items():
         if not valor:
             continue
 
-        termos = normalizar(valor).split()
+        termo_busca = normalizar(valor)
+        termos = termo_busca.split()
         resultados = []
 
         for v in vehicles_filtrados:
             match = False
 
-            if chave in campos_textuais:
+            if chave == "modelo":
                 for campo in campos_textuais:
-                    if campo in v and fuzzy_match(v.get(campo, ""), termos):
+                    if fuzzy_termo_bate(v.get(campo, ""), termos):
                         match = True
                         break
             else:
                 campo_valor = normalizar(v.get(chave, ""))
-                termo_busca = normalizar(valor)
                 if termo_busca in campo_valor or campo_valor in termo_busca:
                     match = True
 
