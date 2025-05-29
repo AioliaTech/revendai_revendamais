@@ -68,7 +68,7 @@ MAPEAMENTO_CATEGORIAS = {
 def inferir_categoria_por_modelo(modelo_buscado):
     modelo_norm = normalizar(modelo_buscado)
     return MAPEAMENTO_CATEGORIAS.get(modelo_norm)
-    
+
 def normalizar(texto: str) -> str:
     return unidecode(texto).lower().replace("-", "").replace(" ", "").strip()
 
@@ -79,50 +79,59 @@ def converter_preco(valor_str):
         return None
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
+    campos_textuais = ["modelo","titulo"]
     vehicles_filtrados = vehicles.copy()
-    campos_textuais = ["modelo", "titulo"]  # fuzzy só nesses campos
 
     for chave, valor in filtros.items():
         if not valor:
             continue
-
         termo_busca = normalizar(valor)
         termos = termo_busca.split()
         resultados = []
 
         for v in vehicles_filtrados:
             match = False
+            for campo in campos_textuais:
+                conteudo = v.get(campo, "")
+                if not conteudo:
+                    continue
+                texto = normalizar(str(conteudo))
 
-            # Fuzzy apenas em modelo e titulo
-            if chave in campos_textuais:
-                for campo in campos_textuais:
-                    texto = normalizar(v.get(campo, ""))
-                    palavras_texto = texto.split()
-
-                    for termo in termos:
-                        for palavra in palavras_texto:
-                            score = max(
-                                fuzz.ratio(palavra, termo),
-                                fuzz.token_set_ratio(palavra, termo),
-                                fuzz.partial_ratio(palavra, termo)
-                            )
-                            if score >= 70:
-                                match = True
-                                break
-                        if match:
-                            break
-                    if match:
+                # 🧠 Novo match: basta UMA palavra relevante bater
+                for termo in termos:
+                    if termo in texto or texto in termo:
+                        match = True
                         break
-            else:
-                # Busca exata em outros campos
-                campo_valor = normalizar(v.get(chave, ""))
-                if termo_busca in campo_valor or campo_valor in termo_busca:
-                    match = True
+                    score_ratio = fuzz.ratio(texto, termo)
+                    score_token = fuzz.token_set_ratio(texto, termo)
+                    score_partial = fuzz.partial_ratio(texto, termo)
+                    if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
+                        match = True
+                        break
+                if match:
+                    break
 
             if match:
                 resultados.append(v)
-
         vehicles_filtrados = resultados
+
+    if valormax:
+        try:
+            teto = float(valormax)
+            maximo = teto * 1.3
+            vehicles_filtrados = [
+                v for v in vehicles_filtrados
+                if "preco" in v and converter_preco(v["preco"]) is not None and converter_preco(v["preco"]) <= maximo
+            ]
+        except:
+            return []
+
+    vehicles_filtrados.sort(
+        key=lambda v: converter_preco(v["preco"]) if "preco" in v else float('inf'),
+        reverse=True
+    )
+    return vehicles_filtrados
+
 
     if valormax:
         try:
@@ -166,8 +175,7 @@ def get_data(request: Request):
 
     filtros = {
         "modelo": query_params.get("modelo"),
-        "marca": query_params.get("marca"),
-        "categoria": query_params.get("categoria")
+        "marca": query_params.get("marca")
     }
 
     resultado = filtrar_veiculos(vehicles, filtros, valormax)
@@ -179,6 +187,7 @@ def get_data(request: Request):
         })
 
     alternativas = []
+
     alternativa1 = filtrar_veiculos(vehicles, filtros)
     if alternativa1:
         alternativas = alternativa1
@@ -187,6 +196,18 @@ def get_data(request: Request):
         alternativa2 = filtrar_veiculos(vehicles, filtros_sem_marca, valormax)
         if alternativa2:
             alternativas = alternativa2
+        else:
+            modelo = filtros.get("modelo")
+            categoria_inferida = inferir_categoria_por_modelo(modelo) if modelo else None
+            if categoria_inferida:
+                filtros_categoria = {"categoria": categoria_inferida}
+                alternativa3 = filtrar_veiculos(vehicles, filtros_categoria, valormax)
+                if alternativa3:
+                    alternativas = alternativa3
+                else:
+                    alternativa4 = filtrar_veiculos(vehicles, filtros_categoria)
+                    if alternativa4:
+                        alternativas = alternativa4
 
     if alternativas:
         alternativa = [
