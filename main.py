@@ -103,11 +103,15 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
                         if termo in texto or texto in termo:
                             match = True
                             break
-                        score_ratio = fuzz.ratio(texto, termo)
-                        score_token = fuzz.token_set_ratio(texto, termo)
-                        score_partial = fuzz.partial_ratio(texto, termo)
-                        if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
-                            match = True
+                        if len(termo) <= 4:
+    if termo in texto or texto in termo:
+        match = True
+else:
+    score_ratio = fuzz.ratio(texto, termo)
+    score_token = fuzz.token_set_ratio(texto, termo)
+    score_partial = fuzz.partial_ratio(texto, termo)
+    if score_ratio >= 70 or score_token >= 70 or score_partial >= 70:
+        match = True
                             break
                     if match:
                         break
