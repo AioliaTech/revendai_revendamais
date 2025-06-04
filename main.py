@@ -8,7 +8,7 @@ import json, os
 
 app = FastAPI()
 
-{
+MAPEAMENTO_CATEGORIAS = {
     # Hatch
     "gol": "Hatch", "uno": "Hatch", "palio": "Hatch", "celta": "Hatch", "ka": "Hatch",
     "fiesta": "Hatch", "march": "Hatch", "sandero": "Hatch", "onix": "Hatch", "hb20": "Hatch",
