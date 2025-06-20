@@ -4,7 +4,7 @@ from unidecode import unidecode
 from rapidfuzz import fuzz
 from apscheduler.schedulers.background import BackgroundScheduler
 from xml_fetcher import fetch_and_convert_xml
-import json, os
+import json, os, re
 
 app = FastAPI()
 
@@ -106,20 +106,24 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
         except ValueError:
             return []
 
-        # Aplicar filtro de anomax (ano máximo)
     if anomax:
         try:
             ano_limite = int(anomax) + 2
             filtrados = []
             for v in vehicles_processados:
-                ano_str = str(v.get("ano", "")).strip()
-                if not ano_str.isdigit():
-                    continue  # ignora se não for número puro
-                ano = int(ano_str)
-                if ano <= ano_limite:
+                ano_raw = v.get("ano", "")
+                ano_limpo = str(ano_raw).strip()
+
+                match = re.search(r"\b(19\d{2}|20\d{2})\b", ano_limpo)
+                if not match:
+                    continue
+
+                ano = int(match.group(1))
+                if 1950 <= ano <= ano_limite:
                     filtrados.append(v)
+
             vehicles_processados = filtrados
-        except ValueError:
+        except Exception:
             return []
 
     for v in vehicles_processados:
