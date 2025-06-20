@@ -258,6 +258,7 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
 
     filtros_originais = {
+        "id": query_params.get("id"),
         "modelo": query_params.get("modelo"),
         "marca": query_params.get("marca"),
         "categoria": query_params.get("categoria")
