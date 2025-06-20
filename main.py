@@ -3,14 +3,31 @@ from fastapi.responses import JSONResponse
 from unidecode import unidecode
 from rapidfuzz import fuzz
 from apscheduler.schedulers.background import BackgroundScheduler
-from xml_fetcher import fetch_and_convert_xml
+from xml_fetcher import fetch_and_convert_xml # Presumo que este arquivo exista
 import json, os
 
 app = FastAPI()
 
-# ... (MAPEAMENTO_CATEGORIAS permanece como enviado)
+MAPEAMENTO_CATEGORIAS = {
+    # (Categorias omitidas para brevidade — mantenha as mesmas)
+}
 
-# ... (funções auxiliares)
+def inferir_categoria_por_modelo(modelo_buscado):
+    modelo_norm = normalizar(modelo_buscado)
+    return MAPEAMENTO_CATEGORIAS.get(modelo_norm)
+
+def normalizar(texto: str) -> str:
+    return unidecode(texto).lower().replace("-", "").replace(" ", "").strip()
+
+def converter_preco(valor_str):
+    try:
+        return float(str(valor_str).replace(",", "").replace("R$", "").strip())
+    except (ValueError, TypeError):
+        return None
+
+def get_price_for_sort(price_val):
+    converted = converter_preco(price_val)
+    return converted if converted is not None else float('-inf')
 
 def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
     campos_fuzzy = ["modelo", "titulo"]
@@ -30,10 +47,12 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
 
         if chave_filtro in campos_fuzzy:
             active_fuzzy_filter_applied = True
-            palavras_query_normalizadas = [normalizar(p) for p in valor_filtro.split() if p.strip()]
+            palavras_query_originais = valor_filtro.split()
+            palavras_query_normalizadas = [normalizar(p) for p in palavras_query_originais if p.strip()]
+            palavras_query_normalizadas = [p for p in palavras_query_normalizadas if p]
 
             if not palavras_query_normalizadas:
-                vehicles_processados = []
+                vehicles_processados = [] 
                 break
 
             for v in vehicles_processados:
@@ -41,18 +60,27 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
                 vehicle_matched_words_for_this_filter = 0
 
                 for palavra_q_norm in palavras_query_normalizadas:
+                    if not palavra_q_norm:
+                        continue
+
                     best_score = 0.0
+
                     for campo in campos_fuzzy:
-                        conteudo = v.get(campo, "")
-                        texto_normalizado = normalizar(str(conteudo))
-                        if palavra_q_norm in texto_normalizado:
-                            best_score = 100.0
+                        texto = normalizar(str(v.get(campo, "")))
+                        if not texto:
+                            continue
+
+                        score = 0.0
+                        if palavra_q_norm in texto:
+                            score = 100.0
                         elif len(palavra_q_norm) >= 4:
-                            partial = fuzz.partial_ratio(texto_normalizado, palavra_q_norm)
-                            ratio = fuzz.ratio(texto_normalizado, palavra_q_norm)
-                            score = max(partial, ratio)
-                            if score >= 75:
-                                best_score = score
+                            score = max(fuzz.partial_ratio(texto, palavra_q_norm), fuzz.ratio(texto, palavra_q_norm))
+                            if score < 75:
+                                score = 0.0
+
+                        if score > best_score:
+                            best_score = score
+
                     if best_score > 0:
                         vehicle_score_for_this_filter += best_score
                         vehicle_matched_words_for_this_filter += 1
@@ -61,6 +89,7 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
                     v['_relevance_score'] += vehicle_score_for_this_filter
                     v['_matched_word_count'] += vehicle_matched_words_for_this_filter
                     veiculos_que_passaram_nesta_chave.append(v)
+
         else:
             termo_normalizado = normalizar(valor_filtro)
             for v in vehicles_processados:
@@ -75,31 +104,22 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
         vehicles_processados = [v for v in vehicles_processados if v['_matched_word_count'] > 0]
 
     if active_fuzzy_filter_applied:
-        vehicles_processados.sort(key=lambda v: (
-            v['_matched_word_count'],
-            v['_relevance_score'],
-            get_price_for_sort(v.get("preco"))
-        ), reverse=True)
+        vehicles_processados.sort(key=lambda v: (v['_matched_word_count'], v['_relevance_score'], get_price_for_sort(v.get("preco"))), reverse=True)
     else:
         vehicles_processados.sort(key=lambda v: get_price_for_sort(v.get("preco")), reverse=True)
 
     if valormax:
         try:
-            max_price_limit = float(valormax) * 1.3
-            vehicles_processados = [
-                v for v in vehicles_processados
-                if (converter_preco(v.get("preco")) or 0) <= max_price_limit
-            ]
+            teto = float(valormax)
+            max_price = teto * 1.3
+            vehicles_processados = [v for v in vehicles_processados if converter_preco(v.get("preco")) is not None and converter_preco(v.get("preco")) <= max_price]
         except ValueError:
             return []
 
     if anomax:
         try:
-            ano_limite = int(anomax) + 2
-            vehicles_processados = [
-                v for v in vehicles_processados
-                if str(v.get("ano", "")).strip().isdigit() and int(v.get("ano")) <= ano_limite
-            ]
+            limite = int(anomax) + 2
+            vehicles_processados = [v for v in vehicles_processados if str(v.get("ano", "")).isdigit() and int(v.get("ano")) <= limite]
         except ValueError:
             return []
 
@@ -124,11 +144,15 @@ def get_data(request: Request):
     try:
         with open("data.json", "r", encoding="utf-8") as f:
             data = json.load(f)
+    except json.JSONDecodeError:
+        return JSONResponse(content={"error": "Erro ao ler os dados (JSON inválido)", "resultados": [], "total_encontrado": 0}, status_code=500)
+
+    try:
         vehicles = data["veiculos"]
         if not isinstance(vehicles, list):
-            return JSONResponse(content={"error": "Formato de dados inválido (veiculos não é uma lista)", "resultados": [], "total_encontrado": 0}, status_code=500)
-    except (json.JSONDecodeError, KeyError):
-        return JSONResponse(content={"error": "Erro ao ler os dados (JSON inválido ou chave faltando)", "resultados": [], "total_encontrado": 0}, status_code=500)
+             return JSONResponse(content={"error": "Formato de dados inválido (veiculos não é uma lista)", "resultados": [], "total_encontrado": 0}, status_code=500)
+    except KeyError:
+        return JSONResponse(content={"error": "Formato de dados inválido (chave 'veiculos' não encontrada)", "resultados": [], "total_encontrado": 0}, status_code=500)
 
     query_params = dict(request.query_params)
     valormax = query_params.pop("ValorMax", None)
@@ -145,40 +169,34 @@ def get_data(request: Request):
     resultado = filtrar_veiculos(vehicles, filtros_ativos, valormax, anomax)
 
     if resultado:
-        return JSONResponse(content={
-            "resultados": resultado,
-            "total_encontrado": len(resultado)
-        })
+        return JSONResponse(content={"resultados": resultado, "total_encontrado": len(resultado)})
 
     alternativas = []
-    filtros_alternativa1 = {k: v for k, v in filtros_originais.items() if v}
-    alt1 = filtrar_veiculos(vehicles, filtros_alternativa1)
+    alt1 = filtrar_veiculos(vehicles, filtros_originais)
     if alt1:
         alternativas = alt1
-    elif filtros_originais.get("modelo"):
-        alt2 = filtrar_veiculos(vehicles, {"modelo": filtros_originais["modelo"]}, valormax)
-        if alt2:
-            alternativas = alt2
-        else:
-            categoria_inferida = inferir_categoria_por_modelo(filtros_originais.get("modelo"))
-            if categoria_inferida:
-                alt3 = filtrar_veiculos(vehicles, {"categoria": categoria_inferida}, valormax)
-                if alt3:
-                    alternativas = alt3
-                else:
-                    alt4 = filtrar_veiculos(vehicles, {"categoria": categoria_inferida})
-                    if alt4:
-                        alternativas = alt4
+    else:
+        if filtros_originais.get("modelo"):
+            alt2 = filtrar_veiculos(vehicles, {"modelo": filtros_originais["modelo"]}, valormax)
+            if alt2:
+                alternativas = alt2
+            else:
+                categoria = inferir_categoria_por_modelo(filtros_originais.get("modelo"))
+                if categoria:
+                    alt3 = filtrar_veiculos(vehicles, {"categoria": categoria}, valormax)
+                    if alt3:
+                        alternativas = alt3
+                    else:
+                        alt4 = filtrar_veiculos(vehicles, {"categoria": categoria})
+                        if alt4:
+                            alternativas = alt4
 
     if alternativas:
-        alternativas_formatadas = [
-            {"titulo": v.get("titulo", ""), "preco": v.get("preco", "")}
-            for v in alternativas[:10]
-        ]
+        alternativas_formatadas = [{"titulo": v.get("titulo", ""), "preco": v.get("preco", "")} for v in alternativas[:10]]
         return JSONResponse(content={
             "resultados": [],
             "total_encontrado": 0,
-            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor ou ano desejado. Seguem as opções mais próximas.",
+            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor desejado. Seguem as opções mais próximas.",
             "alternativa": {
                 "resultados": alternativas_formatadas,
                 "total_encontrado": len(alternativas_formatadas)
