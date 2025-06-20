@@ -107,19 +107,19 @@ def filtrar_veiculos(vehicles, filtros, valormax=None, anomax=None):
             return []
 
     if anomax:
-        try:
-            ano_limite = int(anomax) + 2  # aplica tolerância de 2 anos
-            filtrados = []
-            for v in vehicles_processados:
-                try:
-                    ano = int(str(v.get("ano", "")).strip())
-                    if ano <= ano_limite:
-                        filtrados.append(v)
-                except ValueError:
-                    continue
-            vehicles_processados = filtrados
-        except ValueError:
-            return []
+    try:
+        ano_limite = int(anomax) + 2
+        filtrados = []
+        for v in vehicles_processados:
+            ano_str = str(v.get("ano", "")).strip()
+            if not ano_str.isdigit():
+                continue  # ignora se nao for numero puro
+            ano = int(ano_str)
+            if ano <= ano_limite:
+                filtrados.append(v)
+        vehicles_processados = filtrados
+    except ValueError:
+        return []
 
     for v in vehicles_processados:
         v.pop('_relevance_score', None)
