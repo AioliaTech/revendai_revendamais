@@ -259,6 +259,7 @@ def get_data(request: Request):
 
     filtros_originais = {
     "id": query_params.get("id"),
+    "tipo": query_params.get("tipo"),
     "modelo": query_params.get("modelo"),
     "marca": query_params.get("marca"),
     "categoria": query_params.get("categoria"),
