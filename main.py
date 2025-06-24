@@ -100,7 +100,7 @@ def get_price_for_sort(price_val):
     return converted if converted is not None else float('-inf')
 
 def filtrar_veiculos(vehicles, filtros, valormax=None):
-    campos_fuzzy = ["modelo", "titulo"]
+    campos_fuzzy = ["modelo", "titulo", "cor", "opcionais"]
     vehicles_processados = list(vehicles) 
 
     # Inicializa campos temporários para relevância em cada veículo
@@ -258,11 +258,17 @@ def get_data(request: Request):
     valormax = query_params.pop("ValorMax", None)
 
     filtros_originais = {
-        "id": query_params.get("id"),
-        "modelo": query_params.get("modelo"),
-        "marca": query_params.get("marca"),
-        "categoria": query_params.get("categoria")
-    }
+    "id": query_params.get("id"),
+    "modelo": query_params.get("modelo"),
+    "marca": query_params.get("marca"),
+    "categoria": query_params.get("categoria"),
+    "motor": query_params.get("motor"),
+    "opcionais": query_params.get("opcionais"),
+    "cor": query_params.get("cor"),
+    "combustivel": query_params.get("combustivel"),
+    "ano": query_params.get("ano"),
+    "km": query_params.get("km")
+}
     filtros_ativos = {k: v for k, v in filtros_originais.items() if v}
 
     resultado = filtrar_veiculos(vehicles, filtros_ativos, valormax)
