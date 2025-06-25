@@ -209,7 +209,7 @@ def filtrar_veiculos(vehicles, filtros, valormax=None):
     if valormax:
         try:
             teto = float(valormax)
-            max_price_limit = teto * 1.3 
+            max_price_limit = teto * 1.2 
             
             vehicles_filtrados_preco = []
             for v_dict in vehicles_processados:
