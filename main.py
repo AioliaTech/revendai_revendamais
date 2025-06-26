@@ -262,6 +262,7 @@ def get_data(request: Request):
     "tipo": query_params.get("tipo"),
     "modelo": query_params.get("modelo"),
     "marca": query_params.get("marca"),
+    "cilindrada": query_params.get("cilindrada"),
     "categoria": query_params.get("categoria"),
     "motor": query_params.get("motor"),
     "opcionais": query_params.get("opcionais"),
