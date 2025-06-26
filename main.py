@@ -314,7 +314,7 @@ def get_data(request: Request):
     
     if alternativas:
         alternativas_formatadas = [
-            {"titulo": v.get("titulo", ""), "preco": v.get("preco", "")}
+            {"titulo": v.get("titulo", ""), "cor": v.get("cor", ""), "preco": v.get("preco", "")}
             for v in alternativas[:10] 
         ]
         return JSONResponse(content={
