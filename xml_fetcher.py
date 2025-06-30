@@ -10,8 +10,32 @@ MAPEAMENTO_CATEGORIAS = {
     "gol": "Hatch", "uno": "Hatch", "palio": "Hatch", # ...etc
 }
 MAPEAMENTO_CILINDRADAS = {
-    # (seu dicionário inteiro aqui)
-    "cb 300": 300, "xre 300": 300, # ...etc
+    "g 310": 300, "f 750 gs": 850, "f 850 gs": 850, "f 900": 900, "r 1250": 1250,
+    "r 1300": 1300, "r 18": 1800, "k 1300": 1300, "k 1600": 1650, "s 1000": 1000,
+    "g 650 gs": 650, "cb 300": 300, "cb 500": 500, "cb 650": 650, "cb 1000r": 1000,
+    "cb twister": 300, "twister": 300, "cbr 250": 250, "cbr 500": 500, "cbr 600": 600,
+    "cbr 650": 650, "cbr 1000": 1000, "hornet 600": 600, "cb 600f": 600, "xre 190": 190,
+    "xre 300": 300, "xre 300 sahara": 300, "sahara 300": 300, "sahara 300 rally": 300,
+    "nxr 160": 160, "bros 160": 160, "cg 160": 160, "cg 160 titan": 160, "cg 160 fan": 160,
+    "cg 160 start": 160, "cg 160 titan s": 160, "cg 125": 125, "cg 125 fan ks": 125,
+    "biz 125": 125, "biz 125 es": 125, "biz 110": 110, "pop 110": 110, "pop 110i": 110,
+    "pcx 150": 150, "pcx 160": 160, "xj6": 600, "mt 03": 300, "mt 07": 690, "mt 09": 890,
+    "mt 01": 1700, "fazer 150": 150, "fazer 250": 250, "ys 250": 250, "factor 125": 125,
+    "factor 150": 150, "xtz 150": 150, "xtz 250": 250, "xtz 250 tenere": 250, "tenere 250": 250,
+    "lander 250": 250, "yzf r3": 300, "yzf r-3": 300, "r15": 150, "r1": 1000,
+    "nmax 160": 160, "xmax 250": 250, "gs500": 500, "bandit 600": 600, "bandit 650": 650,
+    "bandit 1250": 1250, "gsx 650f": 650, "gsx-s 750": 750, "gsx-s 1000": 1000,
+    "hayabusa": 1350, "gixxer 250": 250, "burgman 125": 125, "z300": 300, "z400": 400,
+    "z650": 650, "z750": 750, "z800": 800, "z900": 950, "z1000": 1000, "ninja 300": 300,
+    "ninja 400": 400, "ninja 650": 650, "ninja 1000": 1050, "ninja zx-10r": 1000,
+    "er6n": 650, "versys 300": 300, "versys 650": 650, "xt 660": 660, "meteor 350": 350,
+    "classic 350": 350, "hunter 350": 350, "himalayan": 400, "interceptor 650": 650,
+    "continental gt 650": 650, "tiger 800": 800, "tiger 900": 900, "street triple": 750,
+    "speed triple": 1050, "bonneville": 900, "trident 660": 660, "monster 797": 800,
+    "monster 821": 820, "monster 937": 940, "panigale v2": 950, "panigale v4": 1100,
+    "iron 883": 883, "forty eight": 1200, "sportster s": 1250, "fat bob": 1140,
+    "road glide": 2150, "street glide": 1750, "next 300": 300, "commander 250": 250,
+    "dafra citycom 300": 300, "dr 160": 160, "dr 160 s": 160, "t350 x": 350
 }
 
 # =================== UTILS =======================
