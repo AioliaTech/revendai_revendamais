@@ -263,4 +263,102 @@ def get_data(request: Request):
     # PROCESSA FOTOS SE SIMPLES=1
     if simples == "1":
         for v in resultado:
-            if "fotos" in v and "url_fotos" in v["
+            if "fotos" in v and isinstance(v["fotos"], dict) and "url_fotos" in v["fotos"] and isinstance(v["fotos"]["url_fotos"], list):
+                if v["fotos"]["url_fotos"]:
+                    v["fotos"]["url_fotos"] = [v["fotos"]["url_fotos"][0]]
+                else:
+                    v["fotos"]["url_fotos"] = []
+            elif "fotos" in v and isinstance(v["fotos"], dict):
+                v["fotos"]["url_fotos"] = []
+
+    if resultado:
+        return JSONResponse(content={
+            "resultados": resultado,
+            "total_encontrado": len(resultado)
+        })
+
+    alternativas = []
+    filtros_alternativa1 = {k: v for k, v in filtros_originais.items() if v}
+    alt1 = filtrar_veiculos(vehicles, filtros_alternativa1, valormax)
+    if alt1:
+        alternativas = alt1
+    else:
+        if filtros_originais.get("modelo"):
+            filtros_so_modelo = {"modelo": filtros_originais["modelo"]}
+            alt2 = filtrar_veiculos(vehicles, filtros_so_modelo, valormax)
+            if alt2:
+                alternativas = alt2
+            else:
+                modelo_para_inferencia = filtros_originais.get("modelo")
+                if modelo_para_inferencia:
+                    categoria_inferida = inferir_categoria_por_modelo(modelo_para_inferencia)
+                    if categoria_inferida:
+                        filtros_categoria_inferida = {"categoria": categoria_inferida}
+                        alt3 = filtrar_veiculos(vehicles, filtros_categoria_inferida, valormax)
+                        if alt3:
+                            alternativas = alt3
+                        else:
+                            alt4 = filtrar_veiculos(vehicles, filtros_categoria_inferida, valormax)
+                            if alt4:
+                                alternativas = alt4
+    if alternativas:
+        alternativas_formatadas = [
+            {"titulo": v.get("titulo", ""), "cor": v.get("cor", ""), "preco": v.get("preco", "")}
+            for v in alternativas[:10]
+        ]
+        return JSONResponse(content={
+            "resultados": [],
+            "total_encontrado": 0,
+            "instrucao_ia": "Não encontramos veículos com os parâmetros informados dentro do valor desejado. Seguem as opções mais próximas.",
+            "alternativa": {
+                "resultados": alternativas_formatadas,
+                "total_encontrado": len(alternativas_formatadas)
+            }
+        })
+    if filtros_originais.get("cilindrada"):
+        alternativas_cilindrada = buscar_alternativas_cilindrada(vehicles, filtros_originais["cilindrada"], limite=5)
+        if valormax:
+            try:
+                teto = float(valormax)
+                max_price_limit = teto * 1.2
+                alternativas_cilindrada = [
+                    v for v in alternativas_cilindrada
+                    if converter_preco(v.get("preco")) is not None and converter_preco(v.get("preco")) <= max_price_limit
+                ]
+            except ValueError:
+                alternativas_cilindrada = []
+        if alternativas_cilindrada:
+            alternativas_formatadas = [
+                {"marca": v.get("marca", ""), "modelo": v.get("modelo", ""), "ano": v.get("ano", ""), "preco": v.get("preco", ""), "cilindrada": v.get("cilindrada", "")}
+                for v in alternativas_cilindrada
+            ]
+            return JSONResponse(content={
+                "resultados": [],
+                "total_encontrado": 0,
+                "instrucao_ia": f"Não encontramos motos exatamente com {filtros_originais['cilindrada']}cc, mas seguem opções com cilindradas mais próximas.",
+                "alternativa": {
+                    "resultados": alternativas_formatadas,
+                    "total_encontrado": len(alternativas_formatadas)
+                }
+            })
+    if valormax:
+        sugestao_acima = sugerir_mais_proximo_acima(vehicles, valormax, limite=5)
+        if sugestao_acima:
+            alternativas_formatadas = [
+                {"titulo": v.get("titulo", ""), "cor": v.get("cor", ""), "preco": v.get("preco", "")}
+                for v in sugestao_acima
+            ]
+            return JSONResponse(content={
+                "resultados": [],
+                "total_encontrado": 0,
+                "instrucao_ia": f"Não encontramos veículos dentro do valor desejado, mas seguem as opções mais próximas logo acima do valor.",
+                "alternativa": {
+                    "resultados": alternativas_formatadas,
+                    "total_encontrado": len(alternativas_formatadas)
+                }
+            })
+    return JSONResponse(content={
+        "resultados": [],
+        "total_encontrado": 0,
+        "instrucao_ia": "Não encontramos veículos com os parâmetros informados e também não encontramos opções próximas."
+    })
