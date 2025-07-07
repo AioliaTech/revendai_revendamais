@@ -258,6 +258,19 @@ def get_data(request: Request):
     }
     filtros_ativos = {k: v for k, v in filtros_originais.items() if v}
     resultado = filtrar_veiculos(vehicles, filtros_ativos, valormax)
+
+# PROCESSA FOTOS SE SIMPLES=1
+    if simples == "1":
+        for v in resultado:
+            if "fotos" in v and "url_fotos" in v["fotos"] and isinstance(v["fotos"]["url_fotos"], list):
+                # Mantém apenas a primeira imagem (se existir)
+                if v["fotos"]["url_fotos"]:
+                    v["fotos"]["url_fotos"] = [v["fotos"]["url_fotos"][0]]
+                else:
+                    v["fotos"]["url_fotos"] = []
+            elif "fotos" in v:
+                v["fotos"]["url_fotos"] = []
+    
     if resultado:
         return JSONResponse(content={
             "resultados": resultado,
