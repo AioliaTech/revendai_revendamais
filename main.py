@@ -263,13 +263,16 @@ def get_data(request: Request):
     # PROCESSA FOTOS SE SIMPLES=1
     if simples == "1":
         for v in resultado:
-            if "fotos" in v and isinstance(v["fotos"], dict) and "url_fotos" in v["fotos"] and isinstance(v["fotos"]["url_fotos"], list):
-                if v["fotos"]["url_fotos"]:
-                    v["fotos"]["url_fotos"] = [v["fotos"]["url_fotos"][0]]
+            # Garante que "fotos" é dict e "url_fotos" é lista
+            fotos = v.get("fotos")
+            if isinstance(fotos, dict):
+                urls = fotos.get("url_fotos")
+                if isinstance(urls, list):
+                    # Só mantém a primeira foto (ou nenhuma)
+                    fotos["url_fotos"] = urls[:1] if urls else []
                 else:
-                    v["fotos"]["url_fotos"] = []
-            elif "fotos" in v and isinstance(v["fotos"], dict):
-                v["fotos"]["url_fotos"] = []
+                    # Se não for lista, deixa vazio para evitar problemas
+                    fotos["url_fotos"] = []
 
     if resultado:
         return JSONResponse(content={
