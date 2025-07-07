@@ -263,16 +263,9 @@ def get_data(request: Request):
     # PROCESSA FOTOS SE SIMPLES=1
     if simples == "1":
         for v in resultado:
-            # Garante que "fotos" é dict e "url_fotos" é lista
             fotos = v.get("fotos")
-            if isinstance(fotos, dict):
-                urls = fotos.get("url_fotos")
-                if isinstance(urls, list):
-                    # Só mantém a primeira foto (ou nenhuma)
-                    fotos["url_fotos"] = urls[:1] if urls else []
-                else:
-                    # Se não for lista, deixa vazio para evitar problemas
-                    fotos["url_fotos"] = []
+            if isinstance(fotos, list):
+                v["fotos"] = fotos[:1] if fotos else []
 
     if resultado:
         return JSONResponse(content={
