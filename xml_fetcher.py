@@ -4,11 +4,6 @@ from unidecode import unidecode
 
 JSON_FILE = "data.json"
 
-# =================== MAPS =======================
-MAPEAMENTO_CATEGORIAS = {
-    # (seu dicionário inteiro aqui)
-    "gol": "Hatch", "uno": "Hatch", "palio": "Hatch", # ...etc
-}
 MAPEAMENTO_CILINDRADAS = {
     "g 310": 300, "f 750 gs": 850, "f 850 gs": 850, "f 900": 900, "r 1250": 1250,
     "r 1300": 1300, "r 18": 1800, "k 1300": 1300, "k 1600": 1650, "s 1000": 1000,
