@@ -136,10 +136,14 @@ def fetch_and_convert_xml():
         for XML_URL in XML_URLS:
             response = requests.get(XML_URL)
             data_dict = xmltodict.parse(response.content)
-            veiculos = extrair_veiculos(data_dict)
-            for v in veiculos:
+            # suporta diferentes formatos (ADS/AD padrão)
+            ads = data_dict.get("ADS", {}).get("AD", [])
+            # garante que seja lista
+            if isinstance(ads, dict):
+                ads = [ads]
+            for v in ads:
                 try:
-                        parsed = {
+                    parsed = {
                         "id": v.get("ID"),
                         "tipo": v.get("CATEGORY"),
                         "titulo": v.get("TITLE"),
@@ -154,14 +158,13 @@ def fetch_and_convert_xml():
                         "motor": v.get("MOTOR"),
                         "portas": v.get("DOORS"),
                         "categoria": v.get("BODY_TYPE"),
-                        "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
+                        "preco": float(str(v.get("PRICE", "0")).replace(",", "").strip() or 0),
                         "opcionais": v.get("ACCESSORIES"),
-                            "fotos": extrair_fotos(v)
-                        }
-
+                        "fotos": extrair_fotos(v)
+                    }
                     parsed_vehicles.append(parsed)
                 except Exception as e:
-                    print(f"[ERRO ao converter veículo ID {v.get('ID', v.get('idveiculo', ''))}] {e}")
+                    print(f"[ERRO ao converter veículo ID {v.get('ID')}] {e}")
 
         data_dict = {
             "veiculos": parsed_vehicles,
