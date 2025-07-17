@@ -37,7 +37,7 @@ MAPEAMENTO_CILINDRADAS = {
     "road glide": 2150, "street glide": 1750, "next 300": 300, "commander 250": 250,
     "dafra citycom 300": 300, "dr 160": 160, "dr 160 s": 160, "cforce 1000": 1000,
     "trx 420": 420, "t350 x": 350, "xr300l tornado": 300, "fz25 fazer": 250, "fz15 fazer": 150,
-    "biz es": 125, "elite 125": 125, "crf 230f": 230, "cg150 fan": 150
+    "biz es": 125, "elite 125": 125, "crf 230f": 230, "cg150 fan": 150, "cg150 titan": 150
 }
 
 # =================== UTILS =======================
