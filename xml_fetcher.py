@@ -144,46 +144,26 @@ def fetch_and_convert_xml():
             veiculos = extrair_veiculos(data_dict)
             for v in veiculos:
                 try:
-                    # Detecta formato Dominato (estoque/veiculo) ou ADS/AD e adapta
-                    if "idveiculo" in v: # Dominato motos (estoque/veiculo)
                         parsed = {
-                            "id": v.get("idveiculo"),
-                            "tipo": v.get("tipoveiculo"),
-                            "marca": v.get("marca"),
-                            "modelo": v.get("modelo"),
-                            "categoria": inferir_categoria(v.get("modelo")),
-                            "cilindrada": inferir_cilindrada(v.get("modelo")),
-                            "ano": v.get("anomodelo"),
-                            "km": v.get("quilometragem"),
-                            "cor": v.get("cor"),
-                            "combustivel": v.get("combustivel"),
-                            "cambio": v.get("cambio"),
-                            "portas": v.get("numeroportas"),
-                            "preco": converter_preco_xml(v.get("preco")),
-                            "opcionais": v.get("opcionais").get("opcional") if v.get("opcionais") else None,
+                        "id": v.get("ID"),
+                        "tipo": v.get("CATEGORY"),
+                        "titulo": v.get("TITLE"),
+                        "marca": v.get("MAKE"),
+                        "modelo": v.get("MODEL"),
+                        "ano": v.get("YEAR"),
+                        "ano_fabricacao": v.get("FABRIC_YEAR"),
+                        "km": v.get("MILEAGE"),
+                        "cor": v.get("COLOR"),
+                        "combustivel": v.get("FUEL"),
+                        "cambio": v.get("GEAR"),
+                        "motor": v.get("MOTOR"),
+                        "portas": v.get("DOORS"),
+                        "categoria": v.get("BODY_TYPE"),
+                        "preco": float(v.get("PRICE", "0").replace(",", "").strip()),
+                        "opcionais": v.get("ACCESSORIES"),
                             "fotos": extrair_fotos(v)
                         }
-                    else: # ADS/AD padrão webmotors e afins
-                        parsed = {
-                            "id": v.get("ID"),
-                            "tipo": v.get("CATEGORY"),
-                            "titulo": v.get("TITLE"),
-                            "marca": v.get("MAKE"),
-                            "modelo": v.get("MODEL"),
-                            "categoria": v.get("BODY_TYPE"),
-                            "cilindrada": inferir_cilindrada(v.get("MODEL")),
-                            "ano": v.get("YEAR"),
-                            "ano_fabricacao": v.get("FABRIC_YEAR"),
-                            "km": v.get("MILEAGE"),
-                            "cor": v.get("COLOR"),
-                            "combustivel": v.get("FUEL"),
-                            "cambio": v.get("GEAR"),
-                            "motor": v.get("MOTOR"),
-                            "portas": v.get("DOORS"),
-                            "preco": float(str(v.get("PRICE", "0")).replace(",", "").strip() or 0),
-                            "opcionais": v.get("ACCESSORIES"),
-                            "fotos": extrair_fotos(v)
-                        }
+
                     parsed_vehicles.append(parsed)
                 except Exception as e:
                     print(f"[ERRO ao converter veículo ID {v.get('ID', v.get('idveiculo', ''))}] {e}")
