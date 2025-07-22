@@ -751,7 +751,6 @@ def get_data(request: Request):
                 fotos = vehicle_found.get("fotos")
                 if isinstance(fotos, list):
                     vehicle_found["fotos"] = fotos[:1] if fotos else []
-                vehicle_found.pop("opcionais", None)
             
             return JSONResponse(content={
                 "resultados": [vehicle_found],
