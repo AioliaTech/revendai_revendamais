@@ -794,7 +794,6 @@ def get_data(request: Request):
                 if isinstance(fotos, list):
                     vehicle["fotos"] = fotos[:1] if fotos else []
                 # Remove opcionais
-                vehicle.pop("opcionais", None)
         
         return JSONResponse(content={
             "resultados": sorted_vehicles,  # AQUI ESTAVA O PROBLEMA - retorna todos, não limita a 6
@@ -814,8 +813,6 @@ def get_data(request: Request):
             fotos = vehicle.get("fotos")
             if isinstance(fotos, list):
                 vehicle["fotos"] = fotos[:1] if fotos else []
-            # Remove opcionais
-            vehicle.pop("opcionais", None)
     
     # Monta resposta
     response_data = {
